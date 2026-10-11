@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   username: varchar("username", { length: 32 }).notNull().unique(),
   name: varchar("name", { length: 80 }).notNull(),
   passwordHash: text("password_hash").notNull(),
+  avatarUrl: text("avatar_url"),
   role: roleEnum("role").notNull().default("user"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -45,6 +46,7 @@ export const days = pgTable("days", {
   deadline: timestamp("deadline", { withTimezone: true }).notNull(),
   isLocked: boolean("is_locked").notNull().default(false),
   lockedAt: timestamp("locked_at", { withTimezone: true }),
+  menuImageUrl: text("menu_image_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

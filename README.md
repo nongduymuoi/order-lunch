@@ -39,6 +39,7 @@ PGlite chỉ cho một tiến trình mở database, nên **tắt `npm run dev` t
 4. Trong Vercel → Settings → Environment Variables, thêm:
    - `DATABASE_URL`: chuỗi kết nối Neon
    - `SESSION_SECRET`: chuỗi ngẫu nhiên (`openssl rand -base64 32`)
+   - `BLOB_READ_WRITE_TOKEN`: token của Vercel Blob (Storage → Blob → tạo store, rồi dán token). Ảnh menu và avatar lưu ở đây, database chỉ giữ đường dẫn. Để trống khi chạy local: ảnh nằm trong `public/uploads`.
 5. Deploy, đăng ký tài khoản của bạn trên web, rồi cấp quyền owner bằng một trong hai cách:
    - Neon SQL Editor: `update users set role = 'owner' where username = 'ten_cua_ban';`
    - Local (với `.env.local` trỏ tới Neon): `npm run set-role -- ten_cua_ban owner`

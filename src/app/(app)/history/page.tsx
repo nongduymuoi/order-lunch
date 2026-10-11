@@ -31,7 +31,7 @@ async function HistoryContent() {
       {orders.length === 0 ? (
         <EmptyState title="Chưa có đơn nào">Các đơn bạn đặt sẽ xuất hiện ở đây.</EmptyState>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="space-y-4">
           {orders.map((o) => (
             <article key={o.id} className="card p-6">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">

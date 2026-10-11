@@ -24,7 +24,7 @@ export async function requestDeposit(_prev: FormState, formData: FormData): Prom
     .insert(depositRequests)
     .values({ userId: user.id, amount, note: note || transferContent(user.name) });
   refresh();
-  return { success: "Đã gửi yêu cầu nạp tiền. Chờ chủ quán duyệt." };
+  return { success: "Đã gửi yêu cầu nạp tiền. Chờ admin xác nhận." };
 }
 
 export async function reviewDeposit(formData: FormData) {

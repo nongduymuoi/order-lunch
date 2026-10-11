@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { dayItems, days, menuItems, orderItems, orders, type Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
+import { readUploadedImage, removeStoredImage, storeImage } from "@/lib/storage";
 import { deadlineAt, isValidHHMM, todayISO } from "@/lib/time";
 
 const requireStaff = () => requireRole("admin", "owner");
@@ -182,6 +183,42 @@ export async function removeDayItem(formData: FormData) {
   } else {
     await db.delete(dayItems).where(eq(dayItems.id, id));
   }
+  refresh();
+}
+
+// ---------- Ảnh menu món ăn trong ngày ----------
+
+export async function setDayMenuImage(formData: FormData): Promise<FormState> {
+  await requireStaff();
+  const dayId = parseId(formData.get("dayId"));
+  const image = await readUploadedImage(formData.get("file"));
+  if (!dayId) return { error: "Không tìm thấy ngày." };
+  if ("error" in image) return image;
+
+  const [day] = await db
+    .select({ menuImageUrl: days.menuImageUrl })
+    .from(days)
+    .where(eq(days.id, dayId));
+  if (!day) return { error: "Không tìm thấy ngày." };
+
+  const url = await storeImage("menus", image.data, image.type);
+  await db.update(days).set({ menuImageUrl: url }).where(eq(days.id, dayId));
+  await removeStoredImage(day.menuImageUrl);
+  refresh();
+  return { success: "Đã cập nhật ảnh menu món ăn." };
+}
+
+export async function clearDayMenuImage(formData: FormData) {
+  await requireStaff();
+  const dayId = parseId(formData.get("dayId"));
+  if (!dayId) return;
+  const [day] = await db
+    .select({ menuImageUrl: days.menuImageUrl })
+    .from(days)
+    .where(eq(days.id, dayId));
+  if (!day) return;
+  await db.update(days).set({ menuImageUrl: null }).where(eq(days.id, dayId));
+  await removeStoredImage(day.menuImageUrl);
   refresh();
 }
 

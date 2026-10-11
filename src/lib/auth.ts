@@ -10,13 +10,20 @@ export type CurrentUser = {
   username: string;
   name: string;
   role: Role;
+  avatarUrl: string | null;
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const userId = await readSessionUserId();
   if (!userId) return null;
   const [user] = await db
-    .select({ id: users.id, username: users.username, name: users.name, role: users.role })
+    .select({
+      id: users.id,
+      username: users.username,
+      name: users.name,
+      role: users.role,
+      avatarUrl: users.avatarUrl,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);

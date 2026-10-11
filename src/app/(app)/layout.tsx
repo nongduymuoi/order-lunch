@@ -3,6 +3,7 @@ import { logout } from "@/app/actions/auth";
 import { BalanceValue } from "@/components/badges";
 import { Brand } from "@/components/brand";
 import { NavLinks, type NavItem } from "@/components/nav-links";
+import { UserAvatar } from "@/components/user-avatar";
 import { isStaff, requireUser } from "@/lib/auth";
 import { getBalance } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/format";
@@ -38,12 +39,14 @@ async function SidebarContent() {
         { href: "/history", label: "Lịch sử", icon: "history" },
         { href: "/report", label: "Báo cáo", icon: "report" },
         { href: "/deposit", label: "Nạp tiền", icon: "wallet" },
+        { href: "/profile", label: "Hồ sơ", icon: "profile" },
       ],
     },
   ];
   if (isStaff(user.role)) {
     const items: NavItem[] = [
       { href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" },
+      { href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" },
       { href: "/admin/menu", label: "Thực đơn", icon: "menu" },
     ];
     if (user.role === "owner") {
@@ -58,11 +61,18 @@ async function SidebarContent() {
         <NavLinks groups={groups} />
       </div>
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 lg:block lg:p-4">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-          <p className="truncate text-xs text-royal-200/60">
-            @{user.username} · {ROLE_LABEL[user.role]}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <UserAvatar
+            name={user.name}
+            url={user.avatarUrl}
+            className="size-10 shrink-0 rounded-full bg-white/10 text-sm text-white"
+          />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+            <p className="truncate text-xs text-royal-200/60">
+              @{user.username} · {ROLE_LABEL[user.role]}
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3 lg:mt-4 lg:justify-between lg:border-t lg:border-white/10 lg:pt-3">
           <div className="text-right lg:text-left">

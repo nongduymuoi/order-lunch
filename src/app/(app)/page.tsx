@@ -3,6 +3,8 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { PaymentBadge } from "@/components/badges";
 import { Countdown } from "@/components/countdown";
 import { OrderLines } from "@/components/order-lines";
+import { MenuPoster } from "@/components/menu-poster";
+import { UserAvatar } from "@/components/user-avatar";
 import { OrderNote } from "@/components/order-note";
 import { EmptyState, PageSkeleton } from "@/components/page";
 import { isStaff, requireUser } from "@/lib/auth";
@@ -111,6 +113,12 @@ async function TodayContent() {
         </div>
       </section>
 
+      {day.menuImageUrl && (
+        <div className="mb-8">
+          <MenuPoster src={day.menuImageUrl} />
+        </div>
+      )}
+
       {items.length === 0 ? (
         <EmptyState title="Menu hôm nay đang trống">Chủ quán chưa thêm món nào.</EmptyState>
       ) : (
@@ -134,7 +142,15 @@ async function TodayContent() {
             <ul className="divide-y divide-line">
               {dayOrders.map((o) => (
                 <li key={o.id} className="flex items-start gap-3 py-3">
-                  <Avatar name={o.userName} highlight={o.userId === user.id} />
+                  <UserAvatar
+                    name={o.userName}
+                    url={o.avatarUrl}
+                    className={`size-9 shrink-0 rounded-full text-xs ${
+                      o.userId === user.id
+                        ? "bg-royal-600 text-white ring-2 ring-royal-600"
+                        : "bg-royal-50 text-royal-700 ring-1 ring-royal-100"
+                    }`}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink">
                       {o.userName}
@@ -204,20 +220,3 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Avatar({ name, highlight }: { name: string; highlight: boolean }) {
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
-  return (
-    <span
-      className={`flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-        highlight ? "bg-royal-600 text-white" : "bg-royal-50 text-royal-700 ring-1 ring-royal-100"
-      }`}
-    >
-      {initials}
-    </span>
-  );
-}

@@ -6,8 +6,8 @@ export function formatVND(amount: number): string {
 
 export const ROLE_LABEL = {
   user: "Thành viên",
-  admin: "Quản lý",
-  owner: "Chủ quán",
+  admin: "Chủ Quán",
+  owner: "App Owner",
 } as const;
 
 export const CATEGORY_LABEL = {

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BalanceValue, Badge, PaymentBadge } from "@/components/badges";
+import { BalanceValue, PaymentBadge } from "@/components/badges";
 import { OrderLines } from "@/components/order-lines";
 import { EmptyState, PageHeader, PageSkeleton } from "@/components/page";
 import { isStaff, requireUser } from "@/lib/auth";
 import { getLedger, getMemberBalances, type MemberBalance } from "@/lib/data";
-import { formatVND, ROLE_LABEL } from "@/lib/format";
+import { formatVND } from "@/lib/format";
 import { formatDate } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Báo cáo chi tiêu — Mộc" };
@@ -22,7 +22,7 @@ export default function ReportPage({ searchParams }: PageProps<"/report">) {
 async function ReportContent({ searchParams }: { searchParams: PageProps<"/report">["searchParams"] }) {
   const user = await requireUser();
   const staff = isStaff(user.role);
-  const members = staff ? await getMemberBalances() : [];
+  const members = staff ? (await getMemberBalances()).filter((m) => m.role === "user") : [];
 
   const requested = Number((await searchParams).user);
   const target: { id: number; name: string } =
@@ -142,7 +142,6 @@ function MemberTable({ members, selectedId }: { members: MemberBalance[]; select
           <thead className="sticky top-0 bg-mist text-left text-xs text-muted">
             <tr>
               <th className="px-6 py-2 font-semibold">Tên</th>
-              <th className="px-3 py-2 font-semibold">Vai trò</th>
               <th className="px-3 py-2 text-right font-semibold">Đã nạp</th>
               <th className="px-3 py-2 text-right font-semibold">Đã chi</th>
               <th className="px-6 py-2 text-right font-semibold">Số dư</th>
@@ -156,9 +155,6 @@ function MemberTable({ members, selectedId }: { members: MemberBalance[]; select
                     {m.name}
                   </Link>
                   <span className="ml-2 text-xs text-muted">@{m.username}</span>
-                </td>
-                <td className="px-3 py-2.5">
-                  <Badge tone={m.role === "user" ? "gray" : "blue"}>{ROLE_LABEL[m.role]}</Badge>
                 </td>
                 <td className="px-3 py-2.5 text-right tabular-nums">{formatVND(m.deposited)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums">{formatVND(m.spent)}</td>

@@ -41,7 +41,7 @@ async function DepositContent() {
       <PageHeader
         eyebrow="Ví của bạn"
         title="Nạp tiền"
-        description="Quét mã QR để chuyển khoản, rồi gửi yêu cầu tại đây. Số dư được cộng ngay khi chủ quán duyệt."
+        description="Quét mã QR để chuyển khoản, rồi gửi yêu cầu tại đây. Số dư được cộng ngay khi admin duyệt."
       />
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-2">
@@ -64,11 +64,7 @@ async function DepositContent() {
           </section>
           <section className="card p-6">
             <h2 className="mb-5 font-display text-xl font-semibold text-navy-900">Yêu cầu nạp tiền</h2>
-            <DepositForm
-              bank={getBankAccount()}
-              content={transferContent(user.name)}
-              suggested={balance < 0 ? -balance : undefined}
-            />
+            <DepositForm bank={getBankAccount()} content={transferContent(user.name)} />
           </section>
         </div>
 

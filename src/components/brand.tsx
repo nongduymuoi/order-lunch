@@ -19,7 +19,7 @@ export function Brand({ tone = "light" }: { tone?: "light" | "dark" }) {
           Mộc
         </p>
         <p
-          className={`text-[0.65rem] font-medium tracking-[0.22em] uppercase ${tone === "light" ? "text-royal-200/70" : "text-muted"}`}
+          className={`text-xs font-medium ${tone === "light" ? "text-royal-200/80" : "text-muted"}`}
         >
           Lunch with TaMy
         </p>

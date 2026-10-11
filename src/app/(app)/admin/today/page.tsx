@@ -7,14 +7,13 @@ import {
   setDayLocked,
   setDeadline,
   toggleSoldOut,
-  togglePrepared,
   updateDayItemStock,
 } from "@/app/actions/admin";
 import { Badge } from "@/components/badges";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { OrderNote } from "@/components/order-note";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { SearchItem, SearchScope } from "@/components/search";
+import { MenuImageEditor } from "./menu-image-editor";
 import { SubmitButton } from "@/components/submit-button";
 import type { Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
@@ -79,7 +78,6 @@ async function AdminTodayContent() {
   const addable = catalog.filter((c) => c.isActive && !inMenu.has(c.id));
   const revenue = dayOrders.reduce((s, o) => s + o.total, 0);
   const portions = menu.reduce((s, m) => s + m.orderedTotal, 0);
-  const preparedCount = dayOrders.filter((o) => o.preparedAt).length;
   const expired = isPast(day.deadline);
 
   return (
@@ -165,6 +163,8 @@ async function AdminTodayContent() {
           )}
         </div>
 
+        <MenuImageEditor dayId={day.id} url={day.menuImageUrl} />
+
         <SearchScope placeholder="Tìm món ăn, đồ uống trong menu hôm nay…" className="mb-6">
           <div className="space-y-8">
             {CATEGORIES.map((cat) => (
@@ -176,71 +176,6 @@ async function AdminTodayContent() {
             ))}
           </div>
         </SearchScope>
-      </section>
-
-      <section className="card mt-8 p-6">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-navy-900">Danh sách lấy cơm</h2>
-            <p className="mt-1 text-xs text-muted">
-              Bấm “Đã chuẩn bị” khi làm xong một đơn để đánh dấu. Bấm dấu tích để xác nhận đã đọc ghi chú.
-            </p>
-          </div>
-          {dayOrders.length > 0 && (
-            <Badge tone={preparedCount === dayOrders.length ? "green" : "blue"}>
-              Đã chuẩn bị {preparedCount}/{dayOrders.length}
-            </Badge>
-          )}
-        </div>
-        {dayOrders.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted">Chưa có đơn.</p>
-        ) : (
-          <ul className="grid gap-3 md:grid-cols-2">
-            {dayOrders.map((o) => {
-              const prepared = Boolean(o.preparedAt);
-              return (
-                <li
-                  key={o.id}
-                  className={`rounded-2xl border p-4 transition ${
-                    prepared ? "border-emerald-200 bg-emerald-50" : "border-line bg-white"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className={`font-semibold ${prepared ? "text-emerald-800" : "text-ink"}`}>
-                        {o.userName}
-                      </p>
-                      <p className="mt-0.5 text-sm text-muted">
-                        {o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-sm font-medium tabular-nums">{formatVND(o.total)}</span>
-                  </div>
-                  {o.note && (
-                    <OrderNote orderId={o.id} note={o.note} acknowledged={Boolean(o.noteAckAt)} canAck />
-                  )}
-                  <form action={togglePrepared} className="mt-3 flex items-center justify-between gap-3">
-                    <input type="hidden" name="id" value={o.id} />
-                    <input type="hidden" name="prepared" value={prepared ? "false" : "true"} />
-                    <span className="text-xs text-muted">
-                      {o.preparedAt ? `Xong lúc ${toHHMM(o.preparedAt)}` : "Chưa chuẩn bị"}
-                    </span>
-                    <SubmitButton
-                      className={
-                        prepared
-                          ? "btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700"
-                          : "btn-ghost btn-sm"
-                      }
-                      pendingText="Đang lưu…"
-                    >
-                      {prepared ? "✓ Đã chuẩn bị" : "Đánh dấu đã chuẩn bị"}
-                    </SubmitButton>
-                  </form>
-                </li>
-              );
-            })}
-          </ul>
-        )}
       </section>
     </>
   );

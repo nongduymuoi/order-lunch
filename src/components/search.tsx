@@ -36,24 +36,20 @@ export function SearchBox({
   className?: string;
 }) {
   return (
-    <div className={`relative ${className}`}>
-      <svg
-        viewBox="0 0 20 20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted"
-        aria-hidden
-      >
-        <circle cx="9" cy="9" r="5.5" />
-        <path d="m13.5 13.5 3.5 3.5" strokeLinecap="round" />
-      </svg>
+    <div className={`rounded-2xl border-2 border-royal-300 bg-royal-50 p-3 shadow-card ${className}`}>
+      <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-royal-700">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-4" aria-hidden>
+          <circle cx="9" cy="9" r="5.5" />
+          <path d="m13.5 13.5 3.5 3.5" strokeLinecap="round" />
+        </svg>
+        Tìm món
+      </p>
       <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="input pl-10"
+        className="input border-royal-200 bg-white text-base placeholder:text-navy-700/40"
         aria-label={placeholder}
       />
     </div>

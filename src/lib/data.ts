@@ -29,6 +29,7 @@ export type OrderWithLines = {
   date: string;
   userId: number;
   userName: string;
+  avatarUrl: string | null;
   total: number;
   note: string | null;
   noteAckAt: Date | null;
@@ -116,6 +117,7 @@ const orderColumns = {
   date: days.date,
   userId: orders.userId,
   userName: users.name,
+  avatarUrl: users.avatarUrl,
   total: orders.total,
   note: orders.note,
   noteAckAt: orders.noteAckAt,

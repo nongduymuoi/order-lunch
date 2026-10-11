@@ -15,6 +15,13 @@
       "when": 1791738994596,
       "tag": "0001_order_notes_prepared",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791744388041,
+      "tag": "0002_menu_image_avatar",
+      "breakpoints": true
     }
   ]
 }
