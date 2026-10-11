@@ -1,27 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy-950: #050f24;
-  --color-navy-900: #0a1c3f;
-  --color-navy-800: #0f2a5c;
-  --color-navy-700: #173a7a;
-  --color-navy-600: #1f4ea3;
+  /* Xanh lá đậm của trần, ghế và gạch quán. */
+  --color-navy-950: #0d241c;
+  --color-navy-900: #143028;
+  --color-navy-800: #1c4034;
+  --color-navy-700: #275744;
+  --color-navy-600: #346b54;
 
-  --color-royal-700: #1a46c4;
-  --color-royal-600: #2457e0;
-  --color-royal-500: #3a6cf0;
-  --color-royal-400: #6b93f7;
-  --color-royal-200: #c9d8fd;
-  --color-royal-100: #e4ecfe;
-  --color-royal-50: #f2f6ff;
+  /* Xanh lá tươi hơn, dùng cho nút, link và điểm nhấn. */
+  --color-royal-700: #14543f;
+  --color-royal-600: #1a684c;
+  --color-royal-500: #2d7d5d;
+  --color-royal-400: #6eae93;
+  --color-royal-200: #d5ebe1;
+  --color-royal-100: #e7f3ed;
+  --color-royal-50: #f4faf7;
 
-  --color-mist: #f5f7fb;
-  --color-line: #e3e9f3;
-  --color-ink: #0b1630;
-  --color-muted: #5b6b86;
+  /* Nâu gỗ và da ghế. */
+  --color-wood-800: #5c3d28;
+  --color-wood-500: #a56b45;
+  --color-wood-400: #c9956a;
+  --color-wood-300: #e4c9a4;
 
-  --shadow-card: 0 1px 2px rgb(10 28 63 / 0.04), 0 8px 24px -12px rgb(10 28 63 / 0.12);
-  --shadow-lift: 0 2px 4px rgb(10 28 63 / 0.06), 0 18px 40px -18px rgb(10 28 63 / 0.28);
+  /* Be của tường và nền. */
+  --color-mist: #f4efe6;
+  --color-paper: #fffdf8;
+  --color-line: #e4d9c8;
+  --color-ink: #241c16;
+  --color-muted: #6f6256;
+
+  --shadow-card: 0 1px 2px rgb(36 28 22 / 0.04), 0 8px 24px -12px rgb(36 28 22 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(20 48 40 / 0.06), 0 18px 40px -18px rgb(20 48 40 / 0.28);
 }
 
 @theme inline {
@@ -71,7 +81,7 @@ body {
 }
 
 @utility card {
-  @apply rounded-2xl border border-line bg-white shadow-card;
+  @apply rounded-2xl border border-line bg-paper shadow-card;
 }
 
 @utility input {
@@ -89,7 +99,7 @@ body {
 }
 
 @utility btn-primary {
-  @apply btn bg-linear-to-b from-royal-600 to-royal-700 text-white shadow-[0_8px_20px_-8px_rgb(36_87_224/0.7)]
+  @apply btn bg-linear-to-b from-royal-600 to-royal-700 text-white shadow-[0_8px_20px_-8px_rgb(26_104_76/0.7)]
     hover:from-royal-500 hover:to-royal-600;
 }
 

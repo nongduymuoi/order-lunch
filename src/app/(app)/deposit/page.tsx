@@ -46,7 +46,7 @@ async function DepositContent() {
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-2">
           <section className="relative overflow-hidden rounded-3xl bg-navy-900 p-7 text-white shadow-lift">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgb(58_108_240/0.5),transparent_60%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgb(232_184_92/0.32),transparent_60%)]" />
             <div className="relative">
               <p className="eyebrow !text-royal-200/70">Số dư khả dụng</p>
               <p className="mt-3 font-display text-4xl font-semibold">

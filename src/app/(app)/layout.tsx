@@ -12,7 +12,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="min-h-screen lg:pl-72">
       <aside className="relative z-20 bg-navy-950 text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-72">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_0%_0%,rgb(58_108_240/0.28),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_0%_0%,rgb(212_168_96/0.22),transparent_58%)]" />
         <div className="relative flex flex-col gap-4 px-4 py-4 lg:h-full lg:gap-8 lg:px-5 lg:py-7">
           <div className="px-1 lg:px-2">
             <Brand />

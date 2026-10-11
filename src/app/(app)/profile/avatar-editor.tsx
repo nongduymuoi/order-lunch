@@ -40,7 +40,7 @@ export function AvatarEditor({ name, url }: { name: string; url: string | null }
         <UserAvatar
           name={name}
           url={url}
-          className="size-24 rounded-full bg-gradient-to-br from-royal-500 to-navy-800 text-3xl text-white shadow-lift"
+          className="size-24 rounded-full bg-gradient-to-br from-wood-400 to-wood-800 text-[#f8f1e4] shadow-lift"
         />
         <span className="absolute inset-0 flex items-end justify-center rounded-full bg-navy-950/0 pb-2 text-[0.65rem] font-semibold text-white opacity-0 transition hover:bg-navy-950/35 hover:opacity-100">
           {pending ? "…" : "Đổi"}

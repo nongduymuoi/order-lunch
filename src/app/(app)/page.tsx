@@ -85,7 +85,7 @@ async function TodayContent() {
       <TodayHeading date={day.date} />
 
       <section className="relative mb-8 overflow-hidden rounded-3xl bg-navy-900 px-6 py-7 text-white shadow-lift sm:px-10 sm:py-9">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgb(58_108_240/0.45),transparent_55%),radial-gradient(ellipse_at_0%_100%,rgb(36_87_224/0.25),transparent_50%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_100%_0%,rgb(232_184_92/0.28),transparent_55%),radial-gradient(ellipse_at_0%_100%,rgb(45_125_93/0.4),transparent_50%)]" />
         <div className="relative flex flex-wrap items-end justify-between gap-8">
           <div>
             <p className="eyebrow mb-3 !text-royal-200/70">
