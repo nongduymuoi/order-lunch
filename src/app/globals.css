@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #050f24;
+  --color-navy-900: #0a1c3f;
+  --color-navy-800: #0f2a5c;
+  --color-navy-700: #173a7a;
+  --color-navy-600: #1f4ea3;
+
+  --color-royal-700: #1a46c4;
+  --color-royal-600: #2457e0;
+  --color-royal-500: #3a6cf0;
+  --color-royal-400: #6b93f7;
+  --color-royal-200: #c9d8fd;
+  --color-royal-100: #e4ecfe;
+  --color-royal-50: #f2f6ff;
+
+  --color-mist: #f5f7fb;
+  --color-line: #e3e9f3;
+  --color-ink: #0b1630;
+  --color-muted: #5b6b86;
+
+  --shadow-card: 0 1px 2px rgb(10 28 63 / 0.04), 0 8px 24px -12px rgb(10 28 63 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(10 28 63 / 0.06), 0 18px 40px -18px rgb(10 28 63 / 0.28);
+}
+
+@theme inline {
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+}
+
+html {
+  background: var(--color-mist);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Playfair mặc định dùng số kiểu cổ (0 trông như o), ép về số thẳng hàng. */
+@layer base {
+  .font-display {
+    --tw-numeric-figure: lining-nums;
+    font-variant-numeric: lining-nums;
+  }
+}
+
+::selection {
+  background: var(--color-royal-200);
+  color: var(--color-navy-900);
+}
+
+@utility eyebrow {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+@utility hairline {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-royal-200),
+    transparent
+  );
+  height: 1px;
+}
+
+@utility card {
+  @apply rounded-2xl border border-line bg-white shadow-card;
+}
+
+@utility input {
+  @apply w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm text-ink outline-none transition
+    placeholder:text-slate-400 focus:border-royal-500 focus:ring-4 focus:ring-royal-100 disabled:bg-mist;
+}
+
+@utility label {
+  @apply mb-1.5 block text-xs font-semibold tracking-wide text-navy-800;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn bg-linear-to-b from-royal-600 to-royal-700 text-white shadow-[0_8px_20px_-8px_rgb(36_87_224/0.7)]
+    hover:from-royal-500 hover:to-royal-600;
+}
+
+@utility btn-dark {
+  @apply btn bg-navy-900 text-white hover:bg-navy-800;
+}
+
+@utility btn-ghost {
+  @apply btn border border-line bg-white text-navy-800 hover:border-royal-200 hover:bg-royal-50;
+}
+
+@utility btn-danger {
+  @apply btn border border-rose-200 bg-white text-rose-600 hover:bg-rose-50;
+}
+
+@utility btn-sm {
+  @apply rounded-lg px-3 py-1.5 text-xs;
+}
