@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import { saveMyOrder } from "@/app/actions/order";
 import { FormMessage } from "@/components/form-message";
+import { SearchBox } from "@/components/search";
 import type { Category } from "@/db/schema";
 import type { FormState } from "@/lib/form-state";
 import { CATEGORY_LABEL, formatVND } from "@/lib/format";
 import { applyComboPricing } from "@/lib/pricing";
+import { matchesQuery, MAX_NOTE_LENGTH } from "@/lib/text";
 
 export type BuilderItem = {
   dayItemId: number;
@@ -24,13 +26,19 @@ const HARD_CAP = 20;
 export function OrderBuilder({
   items,
   closedReason,
+  savedNote,
+  noteAcknowledged,
 }: {
   items: BuilderItem[];
   closedReason: string | null;
+  savedNote: string;
+  noteAcknowledged: boolean;
 }) {
   const [qty, setQty] = useState<Record<number, number>>(() =>
     Object.fromEntries(items.map((i) => [i.dayItemId, i.savedQty])),
   );
+  const [note, setNote] = useState(savedNote);
+  const [query, setQuery] = useState("");
   const [state, setState] = useState<FormState>(null);
   const [pending, startTransition] = useTransition();
   const closed = closedReason !== null;
@@ -48,7 +56,8 @@ export function OrderBuilder({
   const pricedById = new Map(priced.lines.map((l) => [l.dayItemId, l]));
   const selected = priced.lines.filter((l) => l.quantity > 0);
   const hasSaved = items.some((i) => i.savedQty > 0);
-  const dirty = items.some((i) => quantityOf(i) !== i.savedQty);
+  const noteDirty = note.trim() !== savedNote;
+  const dirty = items.some((i) => quantityOf(i) !== i.savedQty) || (hasSaved && noteDirty);
 
   function change(item: BuilderItem, delta: number) {
     setState(null);
@@ -60,7 +69,7 @@ export function OrderBuilder({
 
   function submit(lines: { dayItemId: number; quantity: number }[]) {
     startTransition(async () => {
-      const result = await saveMyOrder(lines);
+      const result = await saveMyOrder(lines, note);
       setState(result);
       if (result?.success && lines.every((l) => l.quantity === 0)) {
         setQty(Object.fromEntries(items.map((i) => [i.dayItemId, 0])));
@@ -69,13 +78,22 @@ export function OrderBuilder({
   }
 
   const groups: Category[] = ["food", "drink"];
+  const visible = items.filter((i) => matchesQuery(i.name, query));
 
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="space-y-10 lg:col-span-2">
+        <SearchBox value={query} onChange={setQuery} placeholder="Tìm món ăn, đồ uống theo tên…" />
+        {query && visible.length === 0 && (
+          <p className="rounded-2xl border border-dashed border-line py-8 text-center text-sm text-muted">
+            Không tìm thấy món nào khớp “{query}”.
+          </p>
+        )}
         {groups.map((cat) => {
-          const list = items.filter((i) => i.category === cat);
+          const total = items.filter((i) => i.category === cat).length;
+          const list = visible.filter((i) => i.category === cat);
           if (list.length === 0) return null;
+          const scroll = cat === "drink";
           return (
             <section key={cat}>
               <div className="mb-4 flex items-end justify-between gap-4">
@@ -85,9 +103,17 @@ export function OrderBuilder({
                     <p className="mt-1 text-xs text-royal-600">Giảm 20% khi đặt kèm ít nhất một món ăn</p>
                   )}
                 </div>
-                <span className="text-xs text-muted">{list.length} món</span>
+                <span className="text-xs text-muted">
+                  {list.length === total ? `${total} món` : `${list.length}/${total} món`}
+                </span>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div
+                className={`grid gap-4 sm:grid-cols-2 ${
+                  scroll
+                    ? "max-h-[34rem] overflow-y-auto overscroll-contain rounded-2xl border border-line bg-royal-50/40 p-3 sm:p-4"
+                    : ""
+                }`}
+              >
                 {list.map((item) => {
                   const q = quantityOf(item);
                   const line = pricedById.get(item.dayItemId)!;
@@ -176,6 +202,44 @@ export function OrderBuilder({
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+          <div className="border-t border-line px-6 py-4">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <label htmlFor="order-note" className="label !mb-0">
+                Ghi chú cho quán
+              </label>
+              {savedNote && !noteDirty && (
+                noteAcknowledged ? (
+                  <span className="text-xs font-semibold text-emerald-600">✓ Quán đã xác nhận</span>
+                ) : (
+                  <span className="text-xs text-amber-700">Chờ quán xác nhận</span>
+                )
+              )}
+            </div>
+            {closed ? (
+              <p className="rounded-xl bg-mist px-4 py-3 text-sm text-ink">
+                {savedNote || <span className="text-muted">Không có ghi chú.</span>}
+              </p>
+            ) : (
+              <>
+                <textarea
+                  id="order-note"
+                  value={note}
+                  onChange={(e) => {
+                    setState(null);
+                    setNote(e.target.value);
+                  }}
+                  maxLength={MAX_NOTE_LENGTH}
+                  rows={2}
+                  disabled={pending}
+                  placeholder="VD: ít cơm, không hành, đá riêng…"
+                  className="input resize-none"
+                />
+                {hasSaved && noteDirty && (
+                  <p className="mt-1 text-xs text-muted">Bấm “Cập nhật đơn” để gửi ghi chú.</p>
+                )}
+              </>
             )}
           </div>
           <div className="space-y-3 border-t border-line px-6 py-5">

@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getLedger } from "@/lib/data";
 import { formatDate, formatDateTime } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Lịch sử đơn — Đặt Cơm" };
+export const metadata: Metadata = { title: "Lịch sử đơn — Mộc" };
 
 export default function HistoryPage() {
   return (

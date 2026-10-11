@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Đăng nhập — Đặt Cơm" };
+export const metadata: Metadata = { title: "Đăng nhập — Mộc" };
 
 export default function LoginPage() {
   return (

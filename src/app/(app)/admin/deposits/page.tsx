@@ -9,7 +9,7 @@ import { getDepositQueue } from "@/lib/data";
 import { formatVND } from "@/lib/format";
 import { formatDateTime } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Duyệt nạp tiền — Đặt Cơm" };
+export const metadata: Metadata = { title: "Duyệt nạp tiền — Mộc" };
 
 export default function AdminDepositsPage() {
   return (

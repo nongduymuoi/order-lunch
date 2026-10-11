@@ -3,6 +3,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { PaymentBadge } from "@/components/badges";
 import { Countdown } from "@/components/countdown";
 import { OrderLines } from "@/components/order-lines";
+import { OrderNote } from "@/components/order-note";
 import { EmptyState, PageSkeleton } from "@/components/page";
 import { isStaff, requireUser } from "@/lib/auth";
 import { getDayMenu, getDayOrders, getLedger, getToday } from "@/lib/data";
@@ -31,7 +32,7 @@ async function TodayContent() {
             <>
               Vào{" "}
               <a href="/admin/today" className="font-semibold text-royal-600">
-                Điều phối hôm nay
+                Quản lý menu hôm nay
               </a>{" "}
               để mở menu và đặt giờ chốt.
             </>
@@ -70,6 +71,7 @@ async function TodayContent() {
   }));
 
   const myOrder = ledger.orders.find((o) => o.dayId === day.id);
+  const staff = isStaff(user.role);
   const portions = dayOrders.reduce(
     (s, o) => s + o.lines.reduce((n, l) => n + l.quantity, 0),
     0,
@@ -112,7 +114,12 @@ async function TodayContent() {
       {items.length === 0 ? (
         <EmptyState title="Menu hôm nay đang trống">Chủ quán chưa thêm món nào.</EmptyState>
       ) : (
-        <OrderBuilder items={items} closedReason={closedReason} />
+        <OrderBuilder
+          items={items}
+          closedReason={closedReason}
+          savedNote={myOrder?.note ?? ""}
+          noteAcknowledged={Boolean(myOrder?.noteAckAt)}
+        />
       )}
 
       <div className="mt-10 grid gap-6 lg:grid-cols-5">
@@ -136,6 +143,14 @@ async function TodayContent() {
                     <p className="mt-0.5 text-sm text-muted">
                       {o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}
                     </p>
+                    {o.note && (
+                      <OrderNote
+                        orderId={o.id}
+                        note={o.note}
+                        acknowledged={Boolean(o.noteAckAt)}
+                        canAck={staff}
+                      />
+                    )}
                   </div>
                   <span className="shrink-0 text-sm font-medium text-navy-800 tabular-nums">
                     {formatVND(o.total)}
@@ -154,7 +169,14 @@ async function TodayContent() {
             )}
           </div>
           {myOrder ? (
-            <OrderLines lines={myOrder.lines} total={myOrder.total} />
+            <>
+              {myOrder.preparedAt && (
+                <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                  ✓ Quán đã chuẩn bị xong đơn của bạn
+                </p>
+              )}
+              <OrderLines lines={myOrder.lines} total={myOrder.total} />
+            </>
           ) : (
             <p className="py-6 text-center text-sm text-muted">Bạn chưa đặt món hôm nay.</p>
           )}

@@ -7,6 +7,7 @@ import { dayItems, days, menuItems, orderItems, orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
 import { applyComboPricing } from "@/lib/pricing";
+import { MAX_NOTE_LENGTH } from "@/lib/text";
 import { isPast, todayISO } from "@/lib/time";
 
 class OrderError extends Error {}
@@ -15,8 +16,10 @@ const MAX_QTY_PER_ITEM = 20;
 
 export async function saveMyOrder(
   input: { dayItemId: number; quantity: number }[],
+  rawNote?: string,
 ): Promise<FormState> {
   const user = await requireUser();
+  const note = typeof rawNote === "string" ? rawNote.trim().slice(0, MAX_NOTE_LENGTH) || null : null;
 
   const wanted = new Map<number, number>();
   for (const line of Array.isArray(input) ? input : []) {
@@ -66,7 +69,7 @@ export async function saveMyOrder(
       const usedByOthers = new Map(othersUsage.map((u) => [u.dayItemId, u.qty]));
 
       const [existing] = await tx
-        .select({ id: orders.id })
+        .select({ id: orders.id, note: orders.note })
         .from(orders)
         .where(and(eq(orders.dayId, day.id), eq(orders.userId, user.id)));
       const previous = existing
@@ -110,15 +113,24 @@ export async function saveMyOrder(
       let orderId: number;
       if (existing) {
         orderId = existing.id;
+        // Ghi chú đổi thì quán phải xác nhận lại; đơn đổi thì phải chuẩn bị lại.
+        const noteChanged = existing.note !== note;
         await tx
           .update(orders)
-          .set({ total: priced.total, updatedAt: new Date() })
+          .set({
+            total: priced.total,
+            note,
+            ...(noteChanged ? { noteAckAt: null, noteAckById: null } : {}),
+            preparedAt: null,
+            preparedById: null,
+            updatedAt: new Date(),
+          })
           .where(eq(orders.id, orderId));
         await tx.delete(orderItems).where(eq(orderItems.orderId, orderId));
       } else {
         const [created] = await tx
           .insert(orders)
-          .values({ dayId: day.id, userId: user.id, total: priced.total })
+          .values({ dayId: day.id, userId: user.id, total: priced.total, note })
           .returning({ id: orders.id });
         orderId = created.id;
       }

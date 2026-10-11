@@ -7,18 +7,25 @@ import {
   setDayLocked,
   setDeadline,
   toggleSoldOut,
+  togglePrepared,
   updateDayItemStock,
 } from "@/app/actions/admin";
 import { Badge } from "@/components/badges";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { OrderNote } from "@/components/order-note";
 import { PageHeader, PageSkeleton } from "@/components/page";
+import { SearchItem, SearchScope } from "@/components/search";
 import { SubmitButton } from "@/components/submit-button";
+import type { Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { getDayMenu, getDayOrders, getMenuItems, getToday } from "@/lib/data";
+import { getDayMenu, getDayOrders, getMenuItems, getToday, type DayMenuItem } from "@/lib/data";
 import { CATEGORY_LABEL, formatVND } from "@/lib/format";
 import { DEFAULT_DEADLINE, formatDate, isPast, todayISO, toHHMM } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Điều phối hôm nay — Đặt Cơm" };
+export const metadata: Metadata = { title: "Quản lý menu hôm nay — Mộc" };
+
+const TITLE = "Quản lý menu hôm nay";
+const CATEGORIES: Category[] = ["food", "drink"];
 
 export default function AdminTodayPage() {
   return (
@@ -35,7 +42,7 @@ async function AdminTodayContent() {
   if (!day) {
     return (
       <>
-        <PageHeader eyebrow={formatDate(todayISO())} title="Điều phối hôm nay" />
+        <PageHeader eyebrow={formatDate(todayISO())} title={TITLE} />
         <section className="card mx-auto max-w-lg p-8 text-center">
           <p className="font-display text-2xl font-semibold text-navy-900">Mở menu hôm nay</p>
           <p className="mt-2 text-sm text-muted">
@@ -72,6 +79,7 @@ async function AdminTodayContent() {
   const addable = catalog.filter((c) => c.isActive && !inMenu.has(c.id));
   const revenue = dayOrders.reduce((s, o) => s + o.total, 0);
   const portions = menu.reduce((s, m) => s + m.orderedTotal, 0);
+  const preparedCount = dayOrders.filter((o) => o.preparedAt).length;
   const expired = isPast(day.deadline);
 
   return (
@@ -79,7 +87,7 @@ async function AdminTodayContent() {
       <AutoRefresh seconds={30} />
       <PageHeader
         eyebrow={formatDate(day.date)}
-        title="Điều phối hôm nay"
+        title={TITLE}
         actions={
           <form action={setDayLocked} className="flex items-center gap-3">
             <input type="hidden" name="dayId" value={day.id} />
@@ -123,8 +131,8 @@ async function AdminTodayContent() {
         <Metric label="Doanh thu" value={formatVND(revenue)} />
       </div>
 
-      <section className="card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-6 pt-5 pb-4">
+      <section className="card p-6">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="font-display text-xl font-semibold text-navy-900">Món trong menu hôm nay</h2>
             <p className="mt-1 text-xs text-muted">
@@ -134,41 +142,145 @@ async function AdminTodayContent() {
           {addable.length > 0 && (
             <form action={addDayItem} className="flex items-center gap-2">
               <input type="hidden" name="dayId" value={day.id} />
-              <select name="menuItemId" className="input w-56 py-2" required defaultValue="">
+              <select name="menuItemId" className="input w-60 py-2" required defaultValue="">
                 <option value="" disabled>
                   Thêm món vào hôm nay…
                 </option>
-                {addable.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} · {formatVND(c.price)}
-                  </option>
-                ))}
+                {CATEGORIES.map((cat) => {
+                  const options = addable.filter((c) => c.category === cat);
+                  if (options.length === 0) return null;
+                  return (
+                    <optgroup key={cat} label={CATEGORY_LABEL[cat]}>
+                      {options.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} · {formatVND(c.price)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
               </select>
               <SubmitButton className="btn-ghost">Thêm</SubmitButton>
             </form>
           )}
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
+
+        <SearchScope placeholder="Tìm món ăn, đồ uống trong menu hôm nay…" className="mb-6">
+          <div className="space-y-8">
+            {CATEGORIES.map((cat) => (
+              <DayItemsTable
+                key={cat}
+                title={CATEGORY_LABEL[cat]}
+                items={menu.filter((m) => m.category === cat)}
+              />
+            ))}
+          </div>
+        </SearchScope>
+      </section>
+
+      <section className="card mt-8 p-6">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-navy-900">Danh sách lấy cơm</h2>
+            <p className="mt-1 text-xs text-muted">
+              Bấm “Đã chuẩn bị” khi làm xong một đơn để đánh dấu. Bấm dấu tích để xác nhận đã đọc ghi chú.
+            </p>
+          </div>
+          {dayOrders.length > 0 && (
+            <Badge tone={preparedCount === dayOrders.length ? "green" : "blue"}>
+              Đã chuẩn bị {preparedCount}/{dayOrders.length}
+            </Badge>
+          )}
+        </div>
+        {dayOrders.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted">Chưa có đơn.</p>
+        ) : (
+          <ul className="grid gap-3 md:grid-cols-2">
+            {dayOrders.map((o) => {
+              const prepared = Boolean(o.preparedAt);
+              return (
+                <li
+                  key={o.id}
+                  className={`rounded-2xl border p-4 transition ${
+                    prepared ? "border-emerald-200 bg-emerald-50" : "border-line bg-white"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className={`font-semibold ${prepared ? "text-emerald-800" : "text-ink"}`}>
+                        {o.userName}
+                      </p>
+                      <p className="mt-0.5 text-sm text-muted">
+                        {o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-medium tabular-nums">{formatVND(o.total)}</span>
+                  </div>
+                  {o.note && (
+                    <OrderNote orderId={o.id} note={o.note} acknowledged={Boolean(o.noteAckAt)} canAck />
+                  )}
+                  <form action={togglePrepared} className="mt-3 flex items-center justify-between gap-3">
+                    <input type="hidden" name="id" value={o.id} />
+                    <input type="hidden" name="prepared" value={prepared ? "false" : "true"} />
+                    <span className="text-xs text-muted">
+                      {o.preparedAt ? `Xong lúc ${toHHMM(o.preparedAt)}` : "Chưa chuẩn bị"}
+                    </span>
+                    <SubmitButton
+                      className={
+                        prepared
+                          ? "btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "btn-ghost btn-sm"
+                      }
+                      pendingText="Đang lưu…"
+                    >
+                      {prepared ? "✓ Đã chuẩn bị" : "Đánh dấu đã chuẩn bị"}
+                    </SubmitButton>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+
+function DayItemsTable({ title, items }: { title: string; items: DayMenuItem[] }) {
+  return (
+    <SearchItem text={items.map((m) => m.name).join("\n")}>
+      <div className="mb-2 flex items-baseline justify-between">
+        <h3 className="font-display text-lg font-semibold text-navy-900">{title}</h3>
+        <span className="text-xs text-muted">{items.length} món</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-line py-4 text-center text-sm text-muted">
+          Chưa có món nào.
+        </p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-line">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-mist text-left text-xs text-muted">
               <tr>
-                <th className="px-6 py-2.5 font-semibold">Món</th>
+                <th className="px-4 py-2.5 font-semibold">Món</th>
                 <th className="px-3 py-2.5 text-right font-semibold">Giá</th>
                 <th className="px-3 py-2.5 text-center font-semibold">Đã đặt</th>
                 <th className="px-3 py-2.5 font-semibold">Số lượng bán</th>
                 <th className="px-3 py-2.5 text-center font-semibold">Còn lại</th>
-                <th className="px-6 py-2.5 text-right font-semibold">Trạng thái</th>
+                <th className="px-4 py-2.5 text-right font-semibold">Trạng thái</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {menu.map((m) => {
+              {items.map((m) => {
                 const remaining = m.stock === null ? null : m.stock - m.orderedTotal;
                 return (
-                  <tr key={m.dayItemId} className={m.isSoldOut ? "bg-rose-50/40" : ""}>
-                    <td className="px-6 py-3">
-                      <p className="font-medium text-ink">{m.name}</p>
-                      <p className="text-xs text-muted">{CATEGORY_LABEL[m.category]}</p>
-                    </td>
+                  <SearchItem
+                    key={m.dayItemId}
+                    as="tr"
+                    text={m.name}
+                    className={m.isSoldOut ? "bg-rose-50/40" : ""}
+                  >
+                    <td className="px-4 py-3 font-medium text-ink">{m.name}</td>
                     <td className="px-3 py-3 text-right tabular-nums">{formatVND(m.price)}</td>
                     <td className="px-3 py-3 text-center font-semibold tabular-nums">{m.orderedTotal}</td>
                     <td className="px-3 py-3">
@@ -194,7 +306,7 @@ async function AdminTodayContent() {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <form action={toggleSoldOut}>
                           <input type="hidden" name="id" value={m.dayItemId} />
@@ -210,33 +322,14 @@ async function AdminTodayContent() {
                         )}
                       </div>
                     </td>
-                  </tr>
+                  </SearchItem>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="card mt-8 p-6">
-        <h2 className="mb-4 font-display text-xl font-semibold text-navy-900">Danh sách lấy cơm</h2>
-        {dayOrders.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted">Chưa có đơn.</p>
-        ) : (
-          <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2">
-            {dayOrders.map((o) => (
-              <li key={o.id} className="flex justify-between gap-4 border-b border-line pb-3 text-sm">
-                <div>
-                  <p className="font-semibold text-ink">{o.userName}</p>
-                  <p className="text-muted">{o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}</p>
-                </div>
-                <span className="shrink-0 font-medium tabular-nums">{formatVND(o.total)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </>
+      )}
+    </SearchItem>
   );
 }
 

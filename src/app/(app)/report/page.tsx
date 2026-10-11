@@ -9,7 +9,7 @@ import { getLedger, getMemberBalances, type MemberBalance } from "@/lib/data";
 import { formatVND, ROLE_LABEL } from "@/lib/format";
 import { formatDate } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Báo cáo chi tiêu — Đặt Cơm" };
+export const metadata: Metadata = { title: "Báo cáo chi tiêu — Mộc" };
 
 export default function ReportPage({ searchParams }: PageProps<"/report">) {
   return (

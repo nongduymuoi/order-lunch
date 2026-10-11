@@ -43,7 +43,7 @@ async function SidebarContent() {
   ];
   if (isStaff(user.role)) {
     const items: NavItem[] = [
-      { href: "/admin/today", label: "Điều phối hôm nay", icon: "control" },
+      { href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" },
       { href: "/admin/menu", label: "Thực đơn", icon: "menu" },
     ];
     if (user.role === "owner") {

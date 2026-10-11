@@ -22,7 +22,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
               <li>— Theo dõi số dư và các đơn đã thanh toán</li>
             </ul>
           </div>
-          <p className="text-xs text-royal-200/50">© {"Bếp nhà"} · Phục vụ team văn phòng</p>
+          <p className="text-xs text-royal-200/50">© Mộc · Lunch with TaMy</p>
         </div>
       </aside>
       <main className="flex items-center justify-center bg-white px-6 py-12">

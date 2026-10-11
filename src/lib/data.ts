@@ -30,6 +30,9 @@ export type OrderWithLines = {
   userId: number;
   userName: string;
   total: number;
+  note: string | null;
+  noteAckAt: Date | null;
+  preparedAt: Date | null;
   updatedAt: Date;
   lines: OrderLine[];
 };
@@ -114,6 +117,9 @@ const orderColumns = {
   userId: orders.userId,
   userName: users.name,
   total: orders.total,
+  note: orders.note,
+  noteAckAt: orders.noteAckAt,
+  preparedAt: orders.preparedAt,
   updatedAt: orders.updatedAt,
 };
 

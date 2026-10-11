@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { depositRequests } from "@/db/schema";
 import { requireRole, requireUser } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
+import { transferContent } from "@/lib/text";
 
 const MAX_DEPOSIT = 50_000_000;
 
@@ -19,7 +20,9 @@ export async function requestDeposit(_prev: FormState, formData: FormData): Prom
   }
   if (amount > MAX_DEPOSIT) return { error: "Số tiền quá lớn." };
 
-  await db.insert(depositRequests).values({ userId: user.id, amount, note: note || null });
+  await db
+    .insert(depositRequests)
+    .values({ userId: user.id, amount, note: note || transferContent(user.name) });
   refresh();
   return { success: "Đã gửi yêu cầu nạp tiền. Chờ chủ quán duyệt." };
 }

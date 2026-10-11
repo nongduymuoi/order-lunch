@@ -76,6 +76,11 @@ export const orders = pgTable(
       .notNull()
       .references(() => users.id),
     total: integer("total").notNull(),
+    note: text("note"),
+    noteAckAt: timestamp("note_ack_at", { withTimezone: true }),
+    noteAckById: integer("note_ack_by_id").references(() => users.id),
+    preparedAt: timestamp("prepared_at", { withTimezone: true }),
+    preparedById: integer("prepared_by_id").references(() => users.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

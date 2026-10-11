@@ -15,7 +15,7 @@ const heading = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Đặt Cơm — Bếp nhà",
+  title: "Mộc — Lunch with TaMy",
   description: "Đặt cơm trưa cho team: xem menu, chọn món, theo dõi số dư.",
 };
 

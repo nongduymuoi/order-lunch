@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { deleteMenuItem, toggleMenuItem, updateMenuItem } from "@/app/actions/admin";
 import { Badge } from "@/components/badges";
 import { PageHeader, PageSkeleton } from "@/components/page";
+import { SearchItem, SearchScope } from "@/components/search";
 import { SubmitButton } from "@/components/submit-button";
 import type { Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
@@ -10,7 +11,7 @@ import { getMenuItems } from "@/lib/data";
 import { CATEGORY_LABEL } from "@/lib/format";
 import { CreateItemForm } from "./create-item-form";
 
-export const metadata: Metadata = { title: "Thực đơn — Đặt Cơm" };
+export const metadata: Metadata = { title: "Thực đơn — Mộc" };
 
 export default function AdminMenuPage() {
   return (
@@ -39,10 +40,16 @@ async function AdminMenuContent() {
         </section>
 
         <div className="space-y-8 lg:col-span-2">
+          <SearchScope placeholder="Tìm món ăn, đồ uống trong thực đơn…">
           {groups.map((cat) => {
             const list = items.filter((i) => i.category === cat);
             return (
-              <section key={cat} className="card overflow-hidden">
+              <SearchItem
+                as="section"
+                key={cat}
+                text={list.map((i) => i.name).join("\n")}
+                className="card overflow-hidden"
+              >
                 <div className="flex items-baseline justify-between px-6 pt-5 pb-3">
                   <h2 className="font-display text-xl font-semibold text-navy-900">{CATEGORY_LABEL[cat]}</h2>
                   <span className="text-xs text-muted">{list.length} món</span>
@@ -52,7 +59,12 @@ async function AdminMenuContent() {
                 ) : (
                   <ul className="divide-y divide-line border-t border-line">
                     {list.map((item) => (
-                      <li key={item.id} className={`px-6 py-4 ${item.isActive ? "" : "bg-mist/70"}`}>
+                      <SearchItem
+                        as="li"
+                        text={item.name}
+                        key={item.id}
+                        className={`px-6 py-4 ${item.isActive ? "" : "bg-mist/70"}`}
+                      >
                         <form action={updateMenuItem} className="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-start">
                           <input type="hidden" name="id" value={item.id} />
                           <div className="space-y-2">
@@ -99,13 +111,14 @@ async function AdminMenuContent() {
                             <SubmitButton className="btn-danger btn-sm">Xóa</SubmitButton>
                           </form>
                         </div>
-                      </li>
+                      </SearchItem>
                     ))}
                   </ul>
                 )}
-              </section>
+              </SearchItem>
             );
           })}
+          </SearchScope>
         </div>
       </div>
     </>

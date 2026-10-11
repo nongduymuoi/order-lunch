@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { RegisterForm } from "./register-form";
 
-export const metadata: Metadata = { title: "Đăng ký — Đặt Cơm" };
+export const metadata: Metadata = { title: "Đăng ký — Mộc" };
 
 export default function RegisterPage() {
   return (

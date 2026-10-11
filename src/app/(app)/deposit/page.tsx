@@ -3,16 +3,18 @@ import { Suspense } from "react";
 import { BalanceValue, Badge } from "@/components/badges";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { requireUser } from "@/lib/auth";
+import { getBankAccount } from "@/lib/bank";
 import { getBalance, getUserDeposits } from "@/lib/data";
 import { formatVND } from "@/lib/format";
+import { transferContent } from "@/lib/text";
 import { formatDateTime } from "@/lib/time";
 import { DepositForm } from "./deposit-form";
 
-export const metadata: Metadata = { title: "Nạp tiền — Đặt Cơm" };
+export const metadata: Metadata = { title: "Nạp tiền — Mộc" };
 
 const STATUS = {
-  pending: { label: "Chờ duyệt", tone: "amber" },
-  approved: { label: "Đã cộng", tone: "green" },
+  pending: { label: "Đang chờ duyệt", tone: "amber" },
+  approved: { label: "Đã duyệt", tone: "green" },
   rejected: { label: "Từ chối", tone: "red" },
 } as const;
 
@@ -30,13 +32,16 @@ async function DepositContent() {
   const pendingTotal = requests
     .filter((r) => r.status === "pending")
     .reduce((s, r) => s + r.amount, 0);
+  const approvedTotal = requests
+    .filter((r) => r.status === "approved")
+    .reduce((s, r) => s + r.amount, 0);
 
   return (
     <>
       <PageHeader
         eyebrow="Ví của bạn"
         title="Nạp tiền"
-        description="Chuyển khoản cho chủ quán rồi gửi yêu cầu tại đây. Số dư được cộng ngay khi chủ quán duyệt."
+        description="Quét mã QR để chuyển khoản, rồi gửi yêu cầu tại đây. Số dư được cộng ngay khi chủ quán duyệt."
       />
       <div className="grid gap-6 lg:grid-cols-5">
         <div className="space-y-6 lg:col-span-2">
@@ -58,13 +63,24 @@ async function DepositContent() {
             </div>
           </section>
           <section className="card p-6">
-            <h2 className="mb-4 font-display text-xl font-semibold text-navy-900">Gửi yêu cầu nạp</h2>
-            <DepositForm suggested={balance < 0 ? -balance : undefined} />
+            <h2 className="mb-5 font-display text-xl font-semibold text-navy-900">Yêu cầu nạp tiền</h2>
+            <DepositForm
+              bank={getBankAccount()}
+              content={transferContent(user.name)}
+              suggested={balance < 0 ? -balance : undefined}
+            />
           </section>
         </div>
 
         <section className="card p-6 lg:col-span-3">
-          <h2 className="mb-4 font-display text-xl font-semibold text-navy-900">Lịch sử yêu cầu</h2>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="font-display text-xl font-semibold text-navy-900">Lịch sử nạp tiền</h2>
+            {approvedTotal > 0 && (
+              <span className="text-xs text-muted">
+                Tổng đã duyệt: <span className="font-semibold text-emerald-700">{formatVND(approvedTotal)}</span>
+              </span>
+            )}
+          </div>
           {requests.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">Bạn chưa gửi yêu cầu nạp nào.</p>
           ) : (
@@ -74,9 +90,14 @@ async function DepositContent() {
                   <div className="min-w-0">
                     <p className="font-semibold text-navy-900 tabular-nums">{formatVND(r.amount)}</p>
                     <p className="truncate text-xs text-muted">
-                      {formatDateTime(r.createdAt)}
+                      Gửi lúc {formatDateTime(r.createdAt)}
                       {r.note ? ` · ${r.note}` : ""}
                     </p>
+                    {r.reviewedAt && (
+                      <p className="text-xs text-muted">
+                        {r.status === "approved" ? "Duyệt" : "Từ chối"} lúc {formatDateTime(r.reviewedAt)}
+                      </p>
+                    )}
                   </div>
                   <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
                 </li>

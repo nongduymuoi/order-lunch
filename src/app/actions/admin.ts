@@ -3,7 +3,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { db } from "@/db";
-import { dayItems, days, menuItems, orderItems, type Category } from "@/db/schema";
+import { dayItems, days, menuItems, orderItems, orders, type Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
 import { deadlineAt, isValidHHMM, todayISO } from "@/lib/time";
@@ -182,5 +182,35 @@ export async function removeDayItem(formData: FormData) {
   } else {
     await db.delete(dayItems).where(eq(dayItems.id, id));
   }
+  refresh();
+}
+
+// ---------- Đơn của khách ----------
+
+export async function toggleNoteAck(formData: FormData) {
+  const staff = await requireStaff();
+  const id = parseId(formData.get("id"));
+  if (!id) return;
+  const ack = formData.get("ack") === "true";
+  await db
+    .update(orders)
+    .set(ack ? { noteAckAt: new Date(), noteAckById: staff.id } : { noteAckAt: null, noteAckById: null })
+    .where(eq(orders.id, id));
+  refresh();
+}
+
+export async function togglePrepared(formData: FormData) {
+  const staff = await requireStaff();
+  const id = parseId(formData.get("id"));
+  if (!id) return;
+  const prepared = formData.get("prepared") === "true";
+  await db
+    .update(orders)
+    .set(
+      prepared
+        ? { preparedAt: new Date(), preparedById: staff.id }
+        : { preparedAt: null, preparedById: null },
+    )
+    .where(eq(orders.id, id));
   refresh();
 }

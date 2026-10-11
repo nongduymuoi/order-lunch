@@ -1,4 +1,4 @@
-# Đặt Cơm
+# Mộc — Lunch with TaMy
 
 Web đặt cơm trưa cho team: xem menu trong ngày, chọn món, theo dõi số dư và công nợ.
 Next.js 16 (App Router) · Drizzle ORM · Postgres (Neon khi chạy thật, PGlite khi chạy local).
