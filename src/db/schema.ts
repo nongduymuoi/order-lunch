@@ -19,6 +19,7 @@ export const depositStatusEnum = pgEnum("deposit_status", [
   "approved",
   "rejected",
 ]);
+export const ledgerKindEnum = pgEnum("ledger_kind", ["deposit", "credit", "debit"]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -119,6 +120,8 @@ export const depositRequests = pgTable(
       .notNull()
       .references(() => users.id),
     amount: integer("amount").notNull(),
+    // deposit: yêu cầu nạp của thành viên. credit/debit: owner tự cộng hoặc trừ.
+    kind: ledgerKindEnum("kind").notNull().default("deposit"),
     note: text("note"),
     status: depositStatusEnum("status").notNull().default("pending"),
     reviewedById: integer("reviewed_by_id").references(() => users.id),

@@ -34,7 +34,7 @@ async function DepositContent() {
     .reduce((s, r) => s + r.amount, 0);
   const approvedTotal = requests
     .filter((r) => r.status === "approved")
-    .reduce((s, r) => s + r.amount, 0);
+    .reduce((s, r) => s + (r.kind === "debit" ? -r.amount : r.amount), 0);
 
   return (
     <>
@@ -84,7 +84,10 @@ async function DepositContent() {
               {requests.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
-                    <p className="font-semibold text-navy-900 tabular-nums">{formatVND(r.amount)}</p>
+                    <p className="font-semibold text-navy-900 tabular-nums">
+                      {r.kind === "debit" ? "−" : ""}
+                      {formatVND(r.amount)}
+                    </p>
                     <p className="truncate text-xs text-muted">
                       Gửi lúc {formatDateTime(r.createdAt)}
                       {r.note ? ` · ${r.note}` : ""}
@@ -95,7 +98,9 @@ async function DepositContent() {
                       </p>
                     )}
                   </div>
-                  <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].label}</Badge>
+                  <Badge tone={r.kind === "debit" ? "red" : r.kind === "credit" ? "green" : STATUS[r.status].tone}>
+                    {r.kind === "credit" ? "Chủ quán cộng" : r.kind === "debit" ? "Chủ quán trừ" : STATUS[r.status].label}
+                  </Badge>
                 </li>
               ))}
             </ul>

@@ -22,6 +22,13 @@
       "when": 1791744388041,
       "tag": "0002_menu_image_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791787268317,
+      "tag": "0003_ledger_kind",
+      "breakpoints": true
     }
   ]
 }

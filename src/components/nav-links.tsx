@@ -12,6 +12,7 @@ export type NavIcon =
   | "control"
   | "orders"
   | "approve"
+  | "debt"
   | "profile";
 
 export type NavItem = { href: string; label: string; icon: NavIcon };
@@ -25,6 +26,7 @@ const paths: Record<NavIcon, string> = {
   control: "M5 6h9M18 6h1M5 12h3M12 12h7M5 18h11M20 18h-1M14 4v4M8 10v4M16 16v4",
   orders: "M8 7h12M8 12h12M8 17h12M4 7h.01M4 12h.01M4 17h.01",
   approve: "M9 12.5 11 14.5 15.5 10M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z",
+  debt: "M12 3v18M8 8h6a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h7",
   profile: "M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 20a7 7 0 0 1 14 0",
 };
 

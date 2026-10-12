@@ -147,6 +147,10 @@ export async function getUserOrders(userId: number): Promise<OrderWithLines[]> {
   return attachLines(rows);
 }
 
+function signedDeposits() {
+  return sql<number>`coalesce(sum(case when ${depositRequests.kind} = 'debit' then -${depositRequests.amount} else ${depositRequests.amount} end), 0)::int`;
+}
+
 export type PaymentStatus = "paid" | "partial" | "unpaid";
 
 export type LedgerOrder = OrderWithLines & {
@@ -169,7 +173,7 @@ export async function getLedger(userId: number): Promise<Ledger> {
   const [[{ deposited }], userOrders] = await Promise.all([
     db
       .select({
-        deposited: sql<number>`coalesce(sum(${depositRequests.amount}), 0)::int`,
+        deposited: signedDeposits(),
       })
       .from(depositRequests)
       .where(and(eq(depositRequests.userId, userId), eq(depositRequests.status, "approved"))),
@@ -203,7 +207,7 @@ export async function getMemberBalances(): Promise<MemberBalance[]> {
   const deposited = db
     .select({
       userId: depositRequests.userId,
-      amount: sql<number>`sum(${depositRequests.amount})`.as("deposited_amount"),
+      amount: signedDeposits().as("deposited_amount"),
     })
     .from(depositRequests)
     .where(eq(depositRequests.status, "approved"))
@@ -235,10 +239,45 @@ export async function getMemberBalances(): Promise<MemberBalance[]> {
   return rows.map((r) => ({ ...r, balance: r.deposited - r.spent }));
 }
 
+export type DebtOrder = {
+  id: number;
+  date: string;
+  owed: number;
+  summary: string;
+};
+
+export type DebtMember = MemberBalance & {
+  owed: number;
+  orders: DebtOrder[];
+};
+
+/** Thành viên đang âm số dư, kèm các đơn FIFO chưa trả hết. */
+export async function getDebtMembers(): Promise<{ members: MemberBalance[]; debtors: DebtMember[] }> {
+  const members = await getMemberBalances();
+  const debtors = await Promise.all(
+    members
+      .filter((m) => m.balance < 0)
+      .sort((a, b) => a.balance - b.balance)
+      .map(async (m) => {
+        const ledger = await getLedger(m.id);
+        const orders = ledger.orders
+          .filter((o) => o.status !== "paid")
+          .map((o) => ({
+            id: o.id,
+            date: o.date,
+            owed: o.total - o.paidAmount,
+            summary: o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · "),
+          }));
+        return { ...m, owed: -m.balance, orders };
+      }),
+  );
+  return { members, debtors };
+}
+
 export async function getBalance(userId: number): Promise<number> {
   const [row] = await db
     .select({
-      deposited: sql<number>`coalesce((select sum(amount) from ${depositRequests} where user_id = ${userId} and status = 'approved'), 0)::int`,
+      deposited: sql<number>`coalesce((select sum(case when kind = 'debit' then -amount else amount end) from ${depositRequests} where user_id = ${userId} and status = 'approved'), 0)::int`,
       spent: sql<number>`coalesce((select sum(total) from ${orders} where user_id = ${userId}), 0)::int`,
     })
     .from(sql`(select 1) as one`);
@@ -270,6 +309,7 @@ export async function getDepositQueue() {
     })
     .from(depositRequests)
     .innerJoin(users, eq(users.id, depositRequests.userId))
+    .where(eq(depositRequests.kind, "deposit"))
     .orderBy(desc(depositRequests.createdAt))
     .limit(100);
 }

@@ -51,6 +51,7 @@ async function SidebarContent() {
     ];
     if (user.role === "owner") {
       items.push({ href: "/admin/deposits", label: "Duyệt nạp tiền", icon: "approve" });
+      items.push({ href: "/admin/debts", label: "Quản lý nợ", icon: "debt" });
     }
     groups.push({ title: "Quản lý", items });
   }
