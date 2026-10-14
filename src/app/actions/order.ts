@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { dayItems, days, menuItems, orderItems, orders } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
-import { applyComboPricing } from "@/lib/pricing";
+import { priceLines } from "@/lib/pricing";
 import { MAX_NOTE_LENGTH } from "@/lib/text";
 import { isPast, todayISO } from "@/lib/time";
 
@@ -40,8 +40,7 @@ export async function saveMyOrder(
         .where(eq(days.date, todayISO()))
         .for("update");
       if (!day) throw new OrderError("Hôm nay quán chưa mở menu.");
-      if (day.isLocked) throw new OrderError("Đơn hôm nay đã được chốt, không thể thay đổi.");
-      if (isPast(day.deadline)) throw new OrderError("Đã hết giờ chọn món.");
+      const foodClosed = day.isLocked || isPast(day.deadline);
 
       const menu = await tx
         .select({
@@ -49,6 +48,7 @@ export async function saveMyOrder(
           name: menuItems.name,
           category: menuItems.category,
           price: menuItems.price,
+          salePrice: menuItems.salePrice,
           stock: dayItems.stock,
           isSoldOut: dayItems.isSoldOut,
         })
@@ -74,11 +74,29 @@ export async function saveMyOrder(
         .where(and(eq(orders.dayId, day.id), eq(orders.userId, user.id)));
       const previous = existing
         ? await tx
-            .select({ dayItemId: orderItems.dayItemId, quantity: orderItems.quantity })
+            .select({
+              dayItemId: orderItems.dayItemId,
+              name: orderItems.name,
+              category: orderItems.category,
+              unitPrice: orderItems.unitPrice,
+              finalUnitPrice: orderItems.finalUnitPrice,
+              quantity: orderItems.quantity,
+            })
             .from(orderItems)
             .where(eq(orderItems.orderId, existing.id))
         : [];
       const previousQty = new Map(previous.map((p) => [p.dayItemId, p.quantity]));
+      const frozenFood = foodClosed ? previous.filter((p) => p.category === "food" && p.quantity > 0) : [];
+
+      if (foodClosed) {
+        const foodChanged =
+          frozenFood.some((line) => (wanted.get(line.dayItemId) ?? 0) !== line.quantity) ||
+          [...wanted].some(([id, qty]) => {
+            const item = menuById.get(id);
+            return item?.category === "food" && (previousQty.get(id) ?? 0) !== qty;
+          });
+        if (foodChanged) throw new OrderError("Cơm trưa đã chốt. Bạn chỉ đổi được đồ uống.");
+      }
 
       for (const [id, qty] of wanted) {
         const item = menuById.get(id);
@@ -99,16 +117,22 @@ export async function saveMyOrder(
       }
 
       if (wanted.size === 0) {
+        if (frozenFood.length > 0) {
+          throw new OrderError("Cơm trưa đã chốt, không hủy được phần cơm. Bạn vẫn bỏ được đồ uống.");
+        }
         if (existing) await tx.delete(orders).where(eq(orders.id, existing.id));
         return existing ? "Đã hủy đơn hôm nay." : "Bạn chưa chọn món nào.";
       }
 
-      const priced = applyComboPricing(
-        [...wanted].map(([id, quantity]) => {
+      const openLines = [...wanted]
+        .filter(([id]) => !(foodClosed && menuById.get(id)?.category === "food"))
+        .map(([id, quantity]) => {
           const item = menuById.get(id)!;
           return { ...item, quantity };
-        }),
-      );
+        });
+      const priced = priceLines(openLines);
+      const total =
+        priced.total + frozenFood.reduce((sum, line) => sum + line.finalUnitPrice * line.quantity, 0);
 
       let orderId: number;
       if (existing) {
@@ -118,7 +142,7 @@ export async function saveMyOrder(
         await tx
           .update(orders)
           .set({
-            total: priced.total,
+            total,
             note,
             ...(noteChanged ? { noteAckAt: null, noteAckById: null } : {}),
             preparedAt: null,
@@ -130,13 +154,22 @@ export async function saveMyOrder(
       } else {
         const [created] = await tx
           .insert(orders)
-          .values({ dayId: day.id, userId: user.id, total: priced.total, note })
+          .values({ dayId: day.id, userId: user.id, total, note })
           .returning({ id: orders.id });
         orderId = created.id;
       }
 
-      await tx.insert(orderItems).values(
-        priced.lines.map((l) => ({
+      const rows = [
+        ...frozenFood.map((l) => ({
+          orderId,
+          dayItemId: l.dayItemId,
+          name: l.name,
+          category: l.category,
+          unitPrice: l.unitPrice,
+          finalUnitPrice: l.finalUnitPrice,
+          quantity: l.quantity,
+        })),
+        ...priced.lines.map((l) => ({
           orderId,
           dayItemId: l.dayItemId,
           name: l.name,
@@ -145,7 +178,9 @@ export async function saveMyOrder(
           finalUnitPrice: l.finalPrice,
           quantity: l.quantity,
         })),
-      );
+      ];
+      if (rows.length === 0) throw new OrderError("Bạn chưa chọn món nào.");
+      await tx.insert(orderItems).values(rows);
       return existing ? "Đã cập nhật đơn của bạn." : "Đã đặt món thành công.";
     });
 

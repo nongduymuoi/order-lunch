@@ -1,10 +1,6 @@
-import type { Category } from "@/db/schema";
-
-export const DRINK_COMBO_DISCOUNT = 0.2;
-
 export type PricedInput = {
-  category: Category;
   price: number;
+  salePrice: number | null;
   quantity: number;
 };
 
@@ -13,27 +9,22 @@ export type PricedLine<T extends PricedInput> = T & {
   discounted: boolean;
 };
 
-/** Nước giảm 20% khi trong cùng đơn có ít nhất một món ăn. */
-export function applyComboPricing<T extends PricedInput>(lines: T[]): {
+/** Giá khách trả: giá sau giảm nếu quán đã nhập và nhỏ hơn giá gốc. */
+export function chargePrice(price: number, salePrice: number | null): number {
+  return salePrice !== null && salePrice > 0 && salePrice < price ? salePrice : price;
+}
+
+export function priceLines<T extends PricedInput>(lines: T[]): {
   lines: PricedLine<T>[];
-  hasCombo: boolean;
   subtotal: number;
   total: number;
 } {
-  const active = lines.filter((l) => l.quantity > 0);
-  const hasFood = active.some((l) => l.category === "food");
-  const hasDrink = active.some((l) => l.category === "drink");
-  const hasCombo = hasFood && hasDrink;
-
   const priced = lines.map((l) => {
-    const discounted = hasCombo && l.category === "drink";
-    const finalPrice = discounted
-      ? Math.round((l.price * (1 - DRINK_COMBO_DISCOUNT)) / 100) * 100
-      : l.price;
-    return { ...l, finalPrice, discounted };
+    const finalPrice = chargePrice(l.price, l.salePrice);
+    return { ...l, finalPrice, discounted: finalPrice < l.price };
   });
-
+  const active = priced.filter((l) => l.quantity > 0);
   const subtotal = active.reduce((s, l) => s + l.price * l.quantity, 0);
-  const total = priced.reduce((s, l) => s + l.finalPrice * l.quantity, 0);
-  return { lines: priced, hasCombo, subtotal, total };
+  const total = active.reduce((s, l) => s + l.finalPrice * l.quantity, 0);
+  return { lines: priced, subtotal, total };
 }

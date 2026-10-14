@@ -18,7 +18,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             <div className="hairline my-8 !bg-[linear-gradient(90deg,rgb(228_201_164/0.7),transparent)]" />
             <ul className="space-y-3 text-sm text-royal-100/80">
               <li>— Xem menu và số phần còn lại theo thời gian thực</li>
-              <li>— Nước uống giảm 20% khi đặt kèm cơm</li>
+              <li>— Nước uống giảm 20% khi đặt ship mang về</li>
               <li>— Theo dõi số dư và các đơn đã thanh toán</li>
             </ul>
           </div>

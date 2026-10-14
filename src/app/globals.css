@@ -118,3 +118,15 @@ body {
 @utility btn-sm {
   @apply rounded-lg px-3 py-1.5 text-xs;
 }
+
+/* Thanh cuộn riêng, luôn hiện. Thanh mặc định của macOS chỉ xuất hiện khi đang kéo. */
+.menu-scroll {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.menu-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

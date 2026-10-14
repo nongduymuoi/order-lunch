@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { deleteMenuItem, toggleMenuItem, updateMenuItem } from "@/app/actions/admin";
+import { deleteMenuItem, toggleMenuItem } from "@/app/actions/admin";
 import { Badge } from "@/components/badges";
 import { PageHeader, PageSkeleton } from "@/components/page";
 import { SearchItem, SearchScope } from "@/components/search";
@@ -10,6 +10,7 @@ import { requireRole } from "@/lib/auth";
 import { getMenuItems } from "@/lib/data";
 import { CATEGORY_LABEL } from "@/lib/format";
 import { CreateItemForm } from "./create-item-form";
+import { MenuItemEditor } from "./menu-item-editor";
 
 export const metadata: Metadata = { title: "Thực đơn — Mộc" };
 
@@ -31,7 +32,7 @@ async function AdminMenuContent() {
       <PageHeader
         eyebrow="Quản lý"
         title="Thực đơn của quán"
-        description="Món ẩn sẽ không được đưa vào menu khi mở đơn ngày mới. Đổi giá chỉ áp dụng cho các lượt đặt sau đó."
+        description="Món ẩn sẽ không được đưa vào menu khi mở đơn ngày mới. Giá gốc và giá sau giảm chỉ áp dụng cho các lượt đặt sau đó."
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="card h-fit p-6 lg:sticky lg:top-8">
@@ -65,39 +66,7 @@ async function AdminMenuContent() {
                         key={item.id}
                         className={`px-6 py-4 ${item.isActive ? "" : "bg-mist/70"}`}
                       >
-                        <form action={updateMenuItem} className="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-start">
-                          <input type="hidden" name="id" value={item.id} />
-                          <div className="space-y-2">
-                            <input
-                              name="name"
-                              defaultValue={item.name}
-                              className="input py-2 font-medium"
-                              aria-label="Tên món"
-                              required
-                            />
-                            <input
-                              name="description"
-                              defaultValue={item.description ?? ""}
-                              className="input py-1.5 text-xs"
-                              placeholder="Mô tả ngắn (tuỳ chọn)"
-                              aria-label="Mô tả"
-                            />
-                          </div>
-                          <div className="relative">
-                            <input
-                              name="price"
-                              type="number"
-                              min={1000}
-                              step={500}
-                              defaultValue={item.price}
-                              className="input py-2 pr-7 text-right tabular-nums"
-                              aria-label="Giá"
-                              required
-                            />
-                            <span className="pointer-events-none absolute top-2.5 right-3 text-xs text-muted">đ</span>
-                          </div>
-                          <SubmitButton className="btn-ghost">Lưu</SubmitButton>
-                        </form>
+                        <MenuItemEditor item={item} />
                         <div className="mt-3 flex items-center gap-2">
                           {item.isActive ? <Badge tone="green">Đang bán</Badge> : <Badge tone="gray">Đang ẩn</Badge>}
                           <form action={toggleMenuItem}>

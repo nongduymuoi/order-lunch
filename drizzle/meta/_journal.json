@@ -29,6 +29,13 @@
       "when": 1791787268317,
       "tag": "0003_ledger_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791961314253,
+      "tag": "0004_sale_price_drink_menu",
+      "breakpoints": true
     }
   ]
 }

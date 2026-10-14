@@ -16,6 +16,18 @@ function parseMoney(value: FormDataEntryValue | null): number | null {
   return Number.isInteger(n) && n > 0 && n <= 10_000_000 ? n : null;
 }
 
+function parseSalePrice(
+  value: FormDataEntryValue | null,
+  price: number,
+): { salePrice: number | null } | { error: string } {
+  const raw = String(value ?? "").trim();
+  if (raw === "") return { salePrice: null };
+  const n = Number(raw.replace(/[^\d]/g, ""));
+  if (!Number.isInteger(n) || n <= 0 || n > 10_000_000) return { error: "Giá sau giảm không hợp lệ." };
+  if (n >= price) return { error: "Giá sau giảm phải nhỏ hơn giá gốc." };
+  return { salePrice: n };
+}
+
 function parseCategory(value: FormDataEntryValue | null): Category | null {
   return value === "food" || value === "drink" ? value : null;
 }
@@ -42,25 +54,37 @@ export async function createMenuItem(_prev: FormState, formData: FormData): Prom
   if (!name || name.length > 120) return { error: "Vui lòng nhập tên món." };
   if (!category) return { error: "Vui lòng chọn loại món." };
   if (!price) return { error: "Giá không hợp lệ." };
+  const sale = parseSalePrice(formData.get("salePrice"), price);
+  if ("error" in sale) return sale;
 
-  await db.insert(menuItems).values({ name, category, price, description: description || null });
+  await db.insert(menuItems).values({
+    name,
+    category,
+    price,
+    salePrice: sale.salePrice,
+    description: description || null,
+  });
   refresh();
   return { success: `Đã thêm "${name}".` };
 }
 
-export async function updateMenuItem(formData: FormData) {
+export async function updateMenuItem(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireStaff();
   const id = parseId(formData.get("id"));
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const price = parseMoney(formData.get("price"));
-  if (!id || !name || !price) return;
+  if (!id || !name) return { error: "Vui lòng nhập tên món." };
+  if (!price) return { error: "Giá gốc không hợp lệ." };
+  const sale = parseSalePrice(formData.get("salePrice"), price);
+  if ("error" in sale) return sale;
 
   await db
     .update(menuItems)
-    .set({ name: name.slice(0, 120), price, description: description || null })
+    .set({ name: name.slice(0, 120), price, salePrice: sale.salePrice, description: description || null })
     .where(eq(menuItems.id, id));
   refresh();
+  return { success: "Đã lưu món." };
 }
 
 export async function toggleMenuItem(formData: FormData) {
@@ -186,39 +210,53 @@ export async function removeDayItem(formData: FormData) {
   refresh();
 }
 
-// ---------- Ảnh menu món ăn trong ngày ----------
+// ---------- Ảnh menu trong ngày ----------
+
+function menuImageSlot(value: FormDataEntryValue | null): "food" | "drink" {
+  return value === "drink" ? "drink" : "food";
+}
 
 export async function setDayMenuImage(formData: FormData): Promise<FormState> {
   await requireStaff();
   const dayId = parseId(formData.get("dayId"));
+  const slot = menuImageSlot(formData.get("slot"));
   const image = await readUploadedImage(formData.get("file"));
   if (!dayId) return { error: "Không tìm thấy ngày." };
   if ("error" in image) return image;
 
   const [day] = await db
-    .select({ menuImageUrl: days.menuImageUrl })
+    .select({ menuImageUrl: days.menuImageUrl, drinkMenuImageUrl: days.drinkMenuImageUrl })
     .from(days)
     .where(eq(days.id, dayId));
   if (!day) return { error: "Không tìm thấy ngày." };
 
-  const url = await storeImage("menus", image.data, image.type);
-  await db.update(days).set({ menuImageUrl: url }).where(eq(days.id, dayId));
-  await removeStoredImage(day.menuImageUrl);
+  const url = await storeImage(slot === "drink" ? "menus-drink" : "menus", image.data, image.type);
+  const previous = slot === "drink" ? day.drinkMenuImageUrl : day.menuImageUrl;
+  await db
+    .update(days)
+    .set(slot === "drink" ? { drinkMenuImageUrl: url } : { menuImageUrl: url })
+    .where(eq(days.id, dayId));
+  await removeStoredImage(previous);
   refresh();
-  return { success: "Đã cập nhật ảnh menu món ăn." };
+  return { success: slot === "drink" ? "Đã cập nhật ảnh menu nước." : "Đã cập nhật ảnh menu cơm." };
 }
 
 export async function clearDayMenuImage(formData: FormData) {
   await requireStaff();
   const dayId = parseId(formData.get("dayId"));
+  const slot = menuImageSlot(formData.get("slot"));
   if (!dayId) return;
   const [day] = await db
-    .select({ menuImageUrl: days.menuImageUrl })
+    .select({ menuImageUrl: days.menuImageUrl, drinkMenuImageUrl: days.drinkMenuImageUrl })
     .from(days)
     .where(eq(days.id, dayId));
   if (!day) return;
-  await db.update(days).set({ menuImageUrl: null }).where(eq(days.id, dayId));
-  await removeStoredImage(day.menuImageUrl);
+  const previous = slot === "drink" ? day.drinkMenuImageUrl : day.menuImageUrl;
+  await db
+    .update(days)
+    .set(slot === "drink" ? { drinkMenuImageUrl: null } : { menuImageUrl: null })
+    .where(eq(days.id, dayId));
+  await removeStoredImage(previous);
   refresh();
 }
 

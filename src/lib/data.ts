@@ -53,6 +53,7 @@ export type DayMenuItem = {
   name: string;
   category: Category;
   price: number;
+  salePrice: number | null;
   description: string | null;
   stock: number | null;
   isSoldOut: boolean;
@@ -68,6 +69,7 @@ export async function getDayMenu(dayId: number, userId: number): Promise<DayMenu
       name: menuItems.name,
       category: menuItems.category,
       price: menuItems.price,
+      salePrice: menuItems.salePrice,
       description: menuItems.description,
       stock: dayItems.stock,
       isSoldOut: dayItems.isSoldOut,

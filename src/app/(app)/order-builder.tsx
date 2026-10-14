@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { saveMyOrder } from "@/app/actions/order";
 import { FormMessage } from "@/components/form-message";
 import { SearchBox } from "@/components/search";
 import type { Category } from "@/db/schema";
 import type { FormState } from "@/lib/form-state";
 import { CATEGORY_LABEL, formatVND } from "@/lib/format";
-import { applyComboPricing } from "@/lib/pricing";
+import { priceLines } from "@/lib/pricing";
 import { matchesQuery, MAX_NOTE_LENGTH } from "@/lib/text";
 
 export type BuilderItem = {
@@ -15,6 +15,7 @@ export type BuilderItem = {
   name: string;
   category: Category;
   price: number;
+  salePrice: number | null;
   description: string | null;
   isSoldOut: boolean;
   savedQty: number;
@@ -25,12 +26,12 @@ const HARD_CAP = 20;
 
 export function OrderBuilder({
   items,
-  closedReason,
+  foodClosed,
   savedNote,
   noteAcknowledged,
 }: {
   items: BuilderItem[];
-  closedReason: string | null;
+  foodClosed: boolean;
   savedNote: string;
   noteAcknowledged: boolean;
 }) {
@@ -41,30 +42,42 @@ export function OrderBuilder({
   const [query, setQuery] = useState("");
   const [state, setState] = useState<FormState>(null);
   const [pending, startTransition] = useTransition();
-  const closed = closedReason !== null;
 
-  const quantityOf = (i: BuilderItem) => qty[i.dayItemId] ?? 0;
+  const quantityOf = (i: BuilderItem) =>
+    foodClosed && i.category === "food" ? i.savedQty : (qty[i.dayItemId] ?? 0);
   const maxOf = (i: BuilderItem) => {
     const stockCap = i.maxForMe ?? HARD_CAP;
     // Món đã hết thì chỉ giữ được tối đa số phần đã đặt trước đó.
     return Math.min(HARD_CAP, i.isSoldOut ? Math.min(i.savedQty, stockCap) : stockCap);
   };
 
-  const priced = applyComboPricing(
-    items.map((i) => ({ ...i, quantity: quantityOf(i) })),
-  );
-  const pricedById = new Map(priced.lines.map((l) => [l.dayItemId, l]));
+  const priced = priceLines(items.map((i) => ({ ...i, quantity: quantityOf(i) })));
   const selected = priced.lines.filter((l) => l.quantity > 0);
   const hasSaved = items.some((i) => i.savedQty > 0);
   const noteDirty = note.trim() !== savedNote;
   const dirty = items.some((i) => quantityOf(i) !== i.savedQty) || (hasSaved && noteDirty);
 
   function change(item: BuilderItem, delta: number) {
+    if (foodClosed && item.category === "food") return;
     setState(null);
     setQty((prev) => {
       const next = Math.max(0, Math.min(maxOf(item), (prev[item.dayItemId] ?? 0) + delta));
       return { ...prev, [item.dayItemId]: next };
     });
+  }
+
+  function linesOf(mode: "current" | "drop-drinks") {
+    return items
+      .map((item) => ({
+        dayItemId: item.dayItemId,
+        quantity:
+          mode === "drop-drinks"
+            ? item.category === "food"
+              ? item.savedQty
+              : 0
+            : quantityOf(item),
+      }))
+      .filter((line) => line.quantity > 0);
   }
 
   function submit(lines: { dayItemId: number; quantity: number }[]) {
@@ -77,7 +90,9 @@ export function OrderBuilder({
     });
   }
 
-  const groups: Category[] = ["food", "drink"];
+  const groups: Category[] = foodClosed ? ["drink"] : ["food", "drink"];
+  const savedFood = items.some((item) => item.category === "food" && item.savedQty > 0);
+  const savedDrinks = items.some((item) => item.category === "drink" && item.savedQty > 0);
   const visible = items.filter((i) => matchesQuery(i.name, query));
 
   return (
@@ -87,6 +102,11 @@ export function OrderBuilder({
         {query && visible.length === 0 && (
           <p className="rounded-2xl border border-dashed border-line py-8 text-center text-sm text-muted">
             Không tìm thấy món nào khớp “{query}”.
+          </p>
+        )}
+        {foodClosed && !items.some((item) => item.category === "drink") && (
+          <p className="rounded-2xl border border-dashed border-line py-8 text-center text-sm text-muted">
+            Hôm nay không có đồ uống để đặt.
           </p>
         )}
         {groups.map((cat) => {
@@ -100,23 +120,16 @@ export function OrderBuilder({
                 <div>
                   <h2 className="font-display text-2xl font-semibold text-navy-900">{CATEGORY_LABEL[cat]}</h2>
                   {cat === "drink" && (
-                    <p className="mt-1 text-xs text-royal-600">Giảm 20% khi đặt kèm ít nhất một món ăn</p>
+                    <p className="mt-1 text-xs text-royal-600">Giảm 20% khi đặt ship mang về</p>
                   )}
                 </div>
                 <span className="text-xs text-muted">
                   {list.length === total ? `${total} món` : `${list.length}/${total} món`}
                 </span>
               </div>
-              <div
-                className={`grid gap-4 sm:grid-cols-2 ${
-                  scroll
-                    ? "max-h-[34rem] overflow-y-auto overscroll-contain rounded-2xl border border-line bg-royal-50/40 p-3 sm:p-4"
-                    : ""
-                }`}
-              >
+              <ItemGrid scroll={scroll} count={list.length}>
                 {list.map((item) => {
                   const q = quantityOf(item);
-                  const line = pricedById.get(item.dayItemId)!;
                   const remaining = item.maxForMe === null ? null : item.maxForMe - q;
                   const unavailable = item.isSoldOut || (remaining !== null && remaining <= 0 && q === 0);
                   return (
@@ -134,21 +147,14 @@ export function OrderBuilder({
                           )}
                         </div>
                         <div className="shrink-0 text-right tabular-nums">
-                          {line.discounted ? (
-                            <>
-                              <p className="text-xs text-slate-400 line-through">{formatVND(item.price)}</p>
-                              <p className="font-semibold text-royal-700">{formatVND(line.finalPrice)}</p>
-                            </>
-                          ) : (
-                            <p className="font-semibold text-navy-900">{formatVND(item.price)}</p>
-                          )}
+                          <PriceTag price={item.price} salePrice={item.salePrice} />
                         </div>
                       </div>
                       <div className="mt-5 flex items-center justify-between gap-3">
                         <StockPill soldOut={item.isSoldOut} remaining={remaining} />
                         <Stepper
                           value={q}
-                          disabled={closed || pending}
+                          disabled={pending || (foodClosed && item.category === "food")}
                           canDecrease={q > 0}
                           canIncrease={q < maxOf(item)}
                           onChange={(d) => change(item, d)}
@@ -158,7 +164,7 @@ export function OrderBuilder({
                     </article>
                   );
                 })}
-              </div>
+              </ItemGrid>
             </section>
           );
         })}
@@ -171,10 +177,10 @@ export function OrderBuilder({
             <p className="mt-1 font-display text-3xl font-semibold text-navy-900 tabular-nums">
               {formatVND(priced.total)}
             </p>
-            {priced.hasCombo && priced.subtotal > priced.total && (
+            {priced.subtotal > priced.total && (
               <p className="mt-1 text-xs text-royal-600">
                 <span className="mr-1.5 text-slate-400 line-through">{formatVND(priced.subtotal)}</span>
-                Combo cơm + nước, tiết kiệm {formatVND(priced.subtotal - priced.total)}
+                Tiết kiệm {formatVND(priced.subtotal - priced.total)}
               </p>
             )}
           </div>
@@ -188,6 +194,9 @@ export function OrderBuilder({
                     <span className="text-ink">
                       <span className="mr-1.5 text-muted tabular-nums">{l.quantity}×</span>
                       {l.name}
+                      {foodClosed && l.category === "food" && (
+                        <span className="ml-1.5 text-xs text-muted">· đã chốt</span>
+                      )}
                     </span>
                     <span className="shrink-0 tabular-nums">
                       {l.discounted && (
@@ -217,65 +226,120 @@ export function OrderBuilder({
                 )
               )}
             </div>
-            {closed ? (
-              <p className="rounded-xl bg-mist px-4 py-3 text-sm text-ink">
-                {savedNote || <span className="text-muted">Không có ghi chú.</span>}
-              </p>
-            ) : (
-              <>
-                <textarea
-                  id="order-note"
-                  value={note}
-                  onChange={(e) => {
-                    setState(null);
-                    setNote(e.target.value);
-                  }}
-                  maxLength={MAX_NOTE_LENGTH}
-                  rows={2}
-                  disabled={pending}
-                  placeholder="VD: ít cơm, không hành, đá riêng…"
-                  className="input resize-none"
-                />
-                {hasSaved && noteDirty && (
-                  <p className="mt-1 text-xs text-muted">Bấm “Cập nhật đơn” để gửi ghi chú.</p>
-                )}
-              </>
+            <textarea
+              id="order-note"
+              value={note}
+              onChange={(e) => {
+                setState(null);
+                setNote(e.target.value);
+              }}
+              maxLength={MAX_NOTE_LENGTH}
+              rows={2}
+              disabled={pending}
+              placeholder="VD: ít cơm, không hành, đá riêng…"
+              className="input resize-none"
+            />
+            {hasSaved && noteDirty && (
+              <p className="mt-1 text-xs text-muted">Bấm “Cập nhật đơn” để gửi ghi chú.</p>
             )}
           </div>
           <div className="space-y-3 border-t border-line px-6 py-5">
-            {closed ? (
-              <p className="rounded-xl bg-mist px-4 py-3 text-center text-sm font-medium text-navy-800">
-                {closedReason}
-              </p>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn-primary w-full py-3"
-                  disabled={pending || !dirty || selected.length === 0}
-                  onClick={() => submit(selected.map((l) => ({ dayItemId: l.dayItemId, quantity: l.quantity })))}
-                >
-                  {pending ? "Đang lưu…" : hasSaved ? "Cập nhật đơn" : "Xác nhận đặt món"}
-                </button>
-                {hasSaved && (
-                  <button
-                    type="button"
-                    className="btn-ghost w-full"
-                    disabled={pending}
-                    onClick={() => submit([])}
-                  >
-                    Hủy đơn hôm nay
-                  </button>
-                )}
-                {dirty && hasSaved && !pending && (
-                  <p className="text-center text-xs text-amber-700">Bạn có thay đổi chưa lưu.</p>
-                )}
-              </>
+            <button
+              type="button"
+              className="btn-primary w-full py-3"
+              disabled={pending || !dirty || selected.length === 0}
+              onClick={() => submit(linesOf("current"))}
+            >
+              {pending ? "Đang lưu…" : hasSaved ? "Cập nhật đơn" : "Xác nhận đặt món"}
+            </button>
+            {foodClosed && savedFood && savedDrinks && (
+              <button
+                type="button"
+                className="btn-ghost w-full"
+                disabled={pending}
+                onClick={() => submit(linesOf("drop-drinks"))}
+              >
+                Bỏ đồ uống
+              </button>
+            )}
+            {(!foodClosed || !savedFood) && hasSaved && (
+              <button type="button" className="btn-ghost w-full" disabled={pending} onClick={() => submit([])}>
+                Hủy đơn hôm nay
+              </button>
+            )}
+            {dirty && hasSaved && !pending && (
+              <p className="text-center text-xs text-amber-700">Bạn có thay đổi chưa lưu.</p>
             )}
             <FormMessage state={state} />
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+function PriceTag({ price, salePrice }: { price: number; salePrice: number | null }) {
+  const discounted = salePrice !== null && salePrice > 0 && salePrice < price;
+  if (!discounted) {
+    return <p className="font-semibold text-navy-900">{formatVND(price)}</p>;
+  }
+  return (
+    <>
+      <p className="text-xs text-slate-400 line-through">{formatVND(price)}</p>
+      <p className="font-semibold text-royal-700">{formatVND(salePrice)}</p>
+    </>
+  );
+}
+
+function ItemGrid({ scroll, count, children }: { scroll: boolean; count: number; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  const [rail, setRail] = useState({ show: false, thumb: 0, offset: 0 });
+
+  useEffect(() => {
+    if (!scroll) return;
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const overflow = el.scrollHeight - el.clientHeight > 12;
+      const track = Math.max(0, el.clientHeight - 24);
+      const thumb = overflow ? Math.max(48, (el.clientHeight / el.scrollHeight) * track) : 0;
+      const maxScroll = Math.max(1, el.scrollHeight - el.clientHeight);
+      const offset = overflow ? (el.scrollTop / maxScroll) * Math.max(0, track - thumb) : 0;
+      setRail({ show: overflow, thumb, offset });
+      setMoreBelow(overflow && el.scrollTop + el.clientHeight < el.scrollHeight - 12);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [scroll, count]);
+
+  if (!scroll) return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
+
+  return (
+    <div className="relative">
+      <div
+        ref={ref}
+        className="menu-scroll grid max-h-[34rem] gap-4 overscroll-contain rounded-2xl border border-line bg-royal-50/40 p-3 pr-7 sm:grid-cols-2 sm:p-4"
+      >
+        {children}
+      </div>
+      {rail.show && (
+        <div aria-hidden className="pointer-events-none absolute top-3 right-2 bottom-3 w-2.5 rounded-full bg-royal-200">
+          <div
+            className="w-full rounded-full bg-royal-700"
+            style={{ height: rail.thumb, transform: `translateY(${rail.offset}px)` }}
+          />
+        </div>
+      )}
+      {moreBelow && (
+        <p className="mt-2 text-center text-xs font-semibold text-royal-700">↓ Kéo thanh bên phải để xem thêm đồ uống</p>
+      )}
     </div>
   );
 }

@@ -92,14 +92,14 @@ async function AdminTodayContent() {
             <input type="hidden" name="locked" value={day.isLocked ? "false" : "true"} />
             {day.isLocked ? (
               <>
-                <Badge tone="navy">Đã chốt đơn</Badge>
+                <Badge tone="navy">Cơm đã chốt</Badge>
                 <SubmitButton className="btn-ghost" pendingText="Đang mở lại…">
-                  Mở lại đơn
+                  Mở lại cơm
                 </SubmitButton>
               </>
             ) : (
               <SubmitButton className="btn-dark" pendingText="Đang chốt…">
-                Khóa &amp; chốt đơn
+                Chốt cơm trưa
               </SubmitButton>
             )}
           </form>
@@ -121,7 +121,7 @@ async function AdminTodayContent() {
             <SubmitButton className="btn-ghost btn-sm">Lưu</SubmitButton>
           </form>
           <p className={`mt-2 text-xs ${expired ? "text-rose-600" : "text-muted"}`}>
-            {expired ? "Đã quá giờ chốt" : "Còn đang nhận đơn"}
+            {expired ? "Đã hết giờ cơm, vẫn nhận nước" : "Cơm và nước đều đang mở"}
           </p>
         </div>
         <Metric label="Số đơn" value={String(dayOrders.length)} />
@@ -151,7 +151,10 @@ async function AdminTodayContent() {
                     <optgroup key={cat} label={CATEGORY_LABEL[cat]}>
                       {options.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} · {formatVND(c.price)}
+                          {c.name} ·{" "}
+                          {c.salePrice !== null && c.salePrice < c.price
+                            ? `${formatVND(c.salePrice)} (gốc ${formatVND(c.price)})`
+                            : formatVND(c.price)}
                         </option>
                       ))}
                     </optgroup>
@@ -163,7 +166,10 @@ async function AdminTodayContent() {
           )}
         </div>
 
-        <MenuImageEditor dayId={day.id} url={day.menuImageUrl} />
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <MenuImageEditor dayId={day.id} slot="food" title="Ảnh menu cơm" url={day.menuImageUrl} />
+          <MenuImageEditor dayId={day.id} slot="drink" title="Ảnh menu nước" url={day.drinkMenuImageUrl} />
+        </div>
 
         <SearchScope placeholder="Tìm món ăn, đồ uống trong menu hôm nay…" className="mb-6">
           <div className="space-y-8">
@@ -216,7 +222,16 @@ function DayItemsTable({ title, items }: { title: string; items: DayMenuItem[] }
                     className={m.isSoldOut ? "bg-rose-50/40" : ""}
                   >
                     <td className="px-4 py-3 font-medium text-ink">{m.name}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">{formatVND(m.price)}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {m.salePrice !== null && m.salePrice < m.price ? (
+                        <div>
+                          <div className="text-xs text-slate-400 line-through">{formatVND(m.price)}</div>
+                          <div className="font-semibold text-royal-700">{formatVND(m.salePrice)}</div>
+                        </div>
+                      ) : (
+                        formatVND(m.price)
+                      )}
+                    </td>
                     <td className="px-3 py-3 text-center font-semibold tabular-nums">{m.orderedTotal}</td>
                     <td className="px-3 py-3">
                       <form action={updateDayItemStock} className="flex items-center gap-2">

@@ -36,6 +36,8 @@ export const menuItems = pgTable("menu_items", {
   name: varchar("name", { length: 120 }).notNull(),
   category: categoryEnum("category").notNull(),
   price: integer("price").notNull(),
+  // Giá khách trả khi quán nhập tay. null = không giảm, dùng giá gốc.
+  salePrice: integer("sale_price"),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -48,6 +50,7 @@ export const days = pgTable("days", {
   isLocked: boolean("is_locked").notNull().default(false),
   lockedAt: timestamp("locked_at", { withTimezone: true }),
   menuImageUrl: text("menu_image_url"),
+  drinkMenuImageUrl: text("drink_menu_image_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-export function MenuPoster({ src }: { src: string }) {
+export function MenuPoster({ src, alt }: { src: string; alt: string }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -25,7 +25,7 @@ export function MenuPoster({ src }: { src: string }) {
         <span className="relative block h-72 w-full">
           <Image
             src={src}
-            alt="Menu món ăn hôm nay"
+            alt={alt}
             fill
             unoptimized
             sizes="(max-width: 1024px) 100vw, 720px"
@@ -42,12 +42,12 @@ export function MenuPoster({ src }: { src: string }) {
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Ảnh menu món ăn"
+          aria-label={alt}
         >
           <span className="relative block h-[92vh] w-full max-w-5xl">
             <Image
               src={src}
-              alt="Menu món ăn hôm nay"
+              alt={alt}
               fill
               unoptimized
               sizes="100vw"

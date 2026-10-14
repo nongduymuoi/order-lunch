@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FOOD_CLOSED_MESSAGE } from "@/lib/format";
 
 function split(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -41,7 +42,11 @@ export function Countdown({ deadline }: { deadline: string }) {
   }
 
   if (left <= 0) {
-    return <p className="font-display text-3xl font-semibold text-white">Đã hết giờ</p>;
+    return (
+      <p className="max-w-xl font-display text-2xl leading-snug font-semibold text-white sm:text-3xl">
+        {FOOD_CLOSED_MESSAGE}
+      </p>
+    );
   }
 
   const { h, m, s } = split(left);

@@ -40,7 +40,7 @@ export function CreateItemForm() {
       </div>
       <div>
         <label htmlFor="new-price" className="label">
-          Giá (VNĐ)
+          Giá gốc (VNĐ)
         </label>
         <input
           id="new-price"
@@ -52,6 +52,21 @@ export function CreateItemForm() {
           placeholder="45000"
           required
         />
+      </div>
+      <div>
+        <label htmlFor="new-sale-price" className="label">
+          Giá sau giảm (tuỳ chọn)
+        </label>
+        <input
+          id="new-sale-price"
+          name="salePrice"
+          type="number"
+          min={500}
+          step={500}
+          className="input tabular-nums"
+          placeholder="Để trống nếu không giảm"
+        />
+        <p className="mt-1.5 text-xs text-muted">Nhập đúng số khách phải trả. Hệ thống không tự tính phần trăm.</p>
       </div>
       <div>
         <label htmlFor="new-desc" className="label">

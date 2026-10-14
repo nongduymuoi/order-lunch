@@ -8,10 +8,21 @@ import { SubmitButton } from "@/components/submit-button";
 import type { FormState } from "@/lib/form-state";
 import { prepareImage } from "@/lib/image-file";
 
-export function MenuImageEditor({ dayId, url }: { dayId: number; url: string | null }) {
+export function MenuImageEditor({
+  dayId,
+  slot,
+  title,
+  url,
+}: {
+  dayId: number;
+  slot: "food" | "drink";
+  title: string;
+  url: string | null;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<FormState>(null);
   const [pending, startTransition] = useTransition();
+  const alt = slot === "drink" ? "Menu nước hôm nay" : "Menu cơm hôm nay";
 
   function onPick(file: File | undefined) {
     if (!file) return;
@@ -21,6 +32,7 @@ export function MenuImageEditor({ dayId, url }: { dayId: number; url: string | n
         const prepared = await prepareImage(file, { maxEdge: 1600 });
         const formData = new FormData();
         formData.set("dayId", String(dayId));
+        formData.set("slot", slot);
         formData.set("file", prepared);
         setState(await setDayMenuImage(formData));
       } catch {
@@ -30,12 +42,9 @@ export function MenuImageEditor({ dayId, url }: { dayId: number; url: string | n
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-line bg-mist/50 p-4">
+    <div className="rounded-2xl border border-line bg-mist/50 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="font-display text-lg font-semibold text-navy-900">Ảnh menu món ăn</h3>
-          <p className="mt-0.5 text-xs text-muted">Một ảnh cho món ăn hôm nay. Đồ uống không dùng ảnh này.</p>
-        </div>
+        <h3 className="font-display text-lg font-semibold text-navy-900">{title}</h3>
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -58,6 +67,7 @@ export function MenuImageEditor({ dayId, url }: { dayId: number; url: string | n
           {url && (
             <form action={clearDayMenuImage}>
               <input type="hidden" name="dayId" value={dayId} />
+              <input type="hidden" name="slot" value={slot} />
               <SubmitButton className="btn-ghost btn-sm" pendingText="Đang gỡ…">
                 Gỡ ảnh
               </SubmitButton>
@@ -66,10 +76,10 @@ export function MenuImageEditor({ dayId, url }: { dayId: number; url: string | n
         </div>
       </div>
       {url ? (
-        <MenuPoster src={url} />
+        <MenuPoster src={url} alt={alt} />
       ) : (
         <p className="rounded-xl border border-dashed border-line bg-white px-4 py-8 text-center text-sm text-muted">
-          Chưa có ảnh menu món ăn cho hôm nay.
+          Chưa có ảnh cho hôm nay.
         </p>
       )}
       <FormMessage state={state} />

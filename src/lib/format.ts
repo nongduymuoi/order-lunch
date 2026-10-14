@@ -14,3 +14,5 @@ export const CATEGORY_LABEL = {
   food: "Món ăn",
   drink: "Đồ uống",
 } as const;
+
+export const FOOD_CLOSED_MESSAGE = "Đã hết giờ cơm trưa, đặt nước thôi cả nhà ơiiiiii";

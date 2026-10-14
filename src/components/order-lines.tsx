@@ -16,8 +16,8 @@ export function OrderLines({ lines, total }: { lines: OrderLine[]; total: number
                   <span className="mr-1.5 text-muted tabular-nums">{l.quantity}×</span>
                   {l.name}
                 </p>
-                {discounted && (
-                  <p className="mt-0.5 text-xs text-royal-600">Combo cơm + nước · giảm 20%</p>
+                {discounted && l.category === "drink" && (
+                  <p className="mt-0.5 text-xs text-royal-600">Giá ship mang về</p>
                 )}
               </div>
               <div className="shrink-0 text-right text-sm tabular-nums">

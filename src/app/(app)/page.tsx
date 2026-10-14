@@ -9,7 +9,7 @@ import { OrderNote } from "@/components/order-note";
 import { EmptyState, PageSkeleton } from "@/components/page";
 import { isStaff, requireUser } from "@/lib/auth";
 import { getDayMenu, getDayOrders, getLedger, getToday } from "@/lib/data";
-import { formatVND } from "@/lib/format";
+import { FOOD_CLOSED_MESSAGE, formatVND } from "@/lib/format";
 import { formatDate, isPast, todayISO, toHHMM } from "@/lib/time";
 import { OrderBuilder, type BuilderItem } from "./order-builder";
 
@@ -53,18 +53,14 @@ async function TodayContent() {
     getLedger(user.id),
   ]);
 
-  const expired = isPast(day.deadline);
-  const closedReason = day.isLocked
-    ? "Đơn hôm nay đã chốt."
-    : expired
-      ? "Đã hết giờ chọn món."
-      : null;
+  const foodClosed = day.isLocked || isPast(day.deadline);
 
   const items: BuilderItem[] = menu.map((m) => ({
     dayItemId: m.dayItemId,
     name: m.name,
     category: m.category,
     price: m.price,
+    salePrice: m.salePrice,
     description: m.description,
     isSoldOut: m.isSoldOut,
     savedQty: m.orderedByMe,
@@ -89,15 +85,12 @@ async function TodayContent() {
         <div className="relative flex flex-wrap items-end justify-between gap-8">
           <div>
             <p className="eyebrow mb-3 !text-royal-200/70">
-              {day.isLocked ? "Trạng thái" : `Chốt đơn lúc ${toHHMM(day.deadline)}`}
+              {foodClosed ? "Cơm đã chốt · nước vẫn mở" : `Chốt cơm lúc ${toHHMM(day.deadline)}`}
             </p>
-            {day.isLocked ? (
-              <div>
-                <p className="font-display text-4xl font-semibold">Đơn đã chốt</p>
-                <p className="mt-2 text-sm text-royal-100/70">
-                  Bếp đang chuẩn bị. Danh sách bên dưới là đơn cuối cùng.
-                </p>
-              </div>
+            {foodClosed ? (
+              <p className="max-w-xl font-display text-2xl leading-snug font-semibold sm:text-3xl">
+                {FOOD_CLOSED_MESSAGE}
+              </p>
             ) : (
               <Countdown deadline={day.deadline.toISOString()} />
             )}
@@ -113,18 +106,14 @@ async function TodayContent() {
         </div>
       </section>
 
-      {day.menuImageUrl && (
-        <div className="mb-8">
-          <MenuPoster src={day.menuImageUrl} />
-        </div>
-      )}
+      <MenuPosters foodUrl={day.menuImageUrl} drinkUrl={day.drinkMenuImageUrl} />
 
       {items.length === 0 ? (
         <EmptyState title="Menu hôm nay đang trống">Chủ quán chưa thêm món nào.</EmptyState>
       ) : (
         <OrderBuilder
           items={items}
-          closedReason={closedReason}
+          foodClosed={foodClosed}
           savedNote={myOrder?.note ?? ""}
           noteAcknowledged={Boolean(myOrder?.noteAckAt)}
         />
@@ -199,6 +188,25 @@ async function TodayContent() {
         </section>
       </div>
     </>
+  );
+}
+
+function MenuPosters({ foodUrl, drinkUrl }: { foodUrl: string | null; drinkUrl: string | null }) {
+  const posters = [
+    foodUrl ? { src: foodUrl, alt: "Menu cơm hôm nay", caption: "Menu cơm" } : null,
+    drinkUrl ? { src: drinkUrl, alt: "Menu nước hôm nay", caption: "Menu nước" } : null,
+  ].filter((poster) => poster !== null);
+  if (posters.length === 0) return null;
+
+  return (
+    <div className={`mb-8 grid gap-4 ${posters.length > 1 ? "md:grid-cols-2" : ""}`}>
+      {posters.map((poster) => (
+        <figure key={poster.caption}>
+          <figcaption className="eyebrow mb-2">{poster.caption}</figcaption>
+          <MenuPoster src={poster.src} alt={poster.alt} />
+        </figure>
+      ))}
+    </div>
   );
 }
 
