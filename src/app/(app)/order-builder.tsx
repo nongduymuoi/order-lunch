@@ -338,7 +338,7 @@ function ItemGrid({ scroll, count, children }: { scroll: boolean; count: number;
         </div>
       )}
       {moreBelow && (
-        <p className="mt-2 text-center text-xs font-semibold text-royal-700">↓ Kéo thanh bên phải để xem thêm đồ uống</p>
+        <p className="mt-2 text-center text-xs font-semibold text-royal-700">Vuốt xuống để xem thêm đồ uống</p>
       )}
     </div>
   );
