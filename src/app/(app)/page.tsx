@@ -7,7 +7,7 @@ import { MenuPoster } from "@/components/menu-poster";
 import { UserAvatar } from "@/components/user-avatar";
 import { OrderNote } from "@/components/order-note";
 import { EmptyState, PageSkeleton } from "@/components/page";
-import { isStaff, requireUser } from "@/lib/auth";
+import { canPrepareOrders, isStaff, requireUser } from "@/lib/auth";
 import { getDayMenu, getDayOrders, getLedger, getToday } from "@/lib/data";
 import { FOOD_CLOSED_MESSAGE, formatVND } from "@/lib/format";
 import { formatDate, isPast, todayISO, toHHMM } from "@/lib/time";
@@ -69,7 +69,7 @@ async function TodayContent() {
   }));
 
   const myOrder = ledger.orders.find((o) => o.dayId === day.id);
-  const staff = isStaff(user.role);
+  const staff = canPrepareOrders(user.role);
   const portions = dayOrders.reduce(
     (s, o) => s + o.lines.reduce((n, l) => n + l.quantity, 0),
     0,

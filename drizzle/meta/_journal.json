@@ -36,6 +36,13 @@
       "when": 1791961314253,
       "tag": "0004_sale_price_drink_menu",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791994358913,
+      "tag": "0005_staff_role",
+      "breakpoints": true
     }
   ]
 }

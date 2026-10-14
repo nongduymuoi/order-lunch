@@ -42,6 +42,12 @@ export async function requireRole(...roles: Role[]): Promise<CurrentUser> {
   return user;
 }
 
+/** Chủ quán và app owner: quản lý menu, thực đơn, báo cáo. */
 export function isStaff(role: Role): boolean {
   return role === "admin" || role === "owner";
+}
+
+/** Nhân viên bếp, chủ quán và owner: xem danh sách lấy cơm, tick ghi chú và đã chuẩn bị. */
+export function canPrepareOrders(role: Role): boolean {
+  return role === "staff" || isStaff(role);
 }

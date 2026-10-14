@@ -6,7 +6,7 @@ import { roleEnum, users, type Role } from "../src/db/schema";
 async function main() {
   const [username, role] = process.argv.slice(2);
   if (!username || !roleEnum.enumValues.includes(role as Role)) {
-    console.error("Cách dùng: npm run set-role -- <username> <user|admin|owner>");
+    console.error("Cách dùng: npm run set-role -- <username> <user|staff|admin|owner>");
     process.exit(1);
   }
   const updated = await db

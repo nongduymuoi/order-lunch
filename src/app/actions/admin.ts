@@ -9,7 +9,8 @@ import type { FormState } from "@/lib/form-state";
 import { readUploadedImage, removeStoredImage, storeImage } from "@/lib/storage";
 import { deadlineAt, isValidHHMM, todayISO } from "@/lib/time";
 
-const requireStaff = () => requireRole("admin", "owner");
+const requireManager = () => requireRole("admin", "owner");
+const requireKitchen = () => requireRole("staff", "admin", "owner");
 
 function parseMoney(value: FormDataEntryValue | null): number | null {
   const n = Number(String(value ?? "").replace(/[^\d]/g, ""));
@@ -45,7 +46,7 @@ function isForeignKeyViolation(err: unknown): boolean {
 // ---------- Menu ----------
 
 export async function createMenuItem(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireStaff();
+  await requireManager();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const category = parseCategory(formData.get("category"));
@@ -69,7 +70,7 @@ export async function createMenuItem(_prev: FormState, formData: FormData): Prom
 }
 
 export async function updateMenuItem(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -88,7 +89,7 @@ export async function updateMenuItem(_prev: FormState, formData: FormData): Prom
 }
 
 export async function toggleMenuItem(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   if (!id) return;
   await db
@@ -99,7 +100,7 @@ export async function toggleMenuItem(formData: FormData) {
 }
 
 export async function deleteMenuItem(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   if (!id) return;
   try {
@@ -115,7 +116,7 @@ export async function deleteMenuItem(formData: FormData) {
 // ---------- Menu hôm nay ----------
 
 export async function openToday(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const time = String(formData.get("deadline") ?? "");
   if (!isValidHHMM(time)) return;
   const date = todayISO();
@@ -139,7 +140,7 @@ export async function openToday(formData: FormData) {
 }
 
 export async function setDeadline(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const dayId = parseId(formData.get("dayId"));
   const time = String(formData.get("deadline") ?? "");
   if (!dayId || !isValidHHMM(time)) return;
@@ -150,7 +151,7 @@ export async function setDeadline(formData: FormData) {
 }
 
 export async function setDayLocked(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const dayId = parseId(formData.get("dayId"));
   const locked = formData.get("locked") === "true";
   if (!dayId) return;
@@ -162,7 +163,7 @@ export async function setDayLocked(formData: FormData) {
 }
 
 export async function updateDayItemStock(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   const raw = String(formData.get("stock") ?? "").trim();
   if (!id) return;
@@ -173,7 +174,7 @@ export async function updateDayItemStock(formData: FormData) {
 }
 
 export async function toggleSoldOut(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   if (!id) return;
   await db
@@ -184,7 +185,7 @@ export async function toggleSoldOut(formData: FormData) {
 }
 
 export async function addDayItem(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const dayId = parseId(formData.get("dayId"));
   const menuItemId = parseId(formData.get("menuItemId"));
   if (!dayId || !menuItemId) return;
@@ -193,7 +194,7 @@ export async function addDayItem(formData: FormData) {
 }
 
 export async function removeDayItem(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const id = parseId(formData.get("id"));
   if (!id) return;
   const [used] = await db
@@ -217,7 +218,7 @@ function menuImageSlot(value: FormDataEntryValue | null): "food" | "drink" {
 }
 
 export async function setDayMenuImage(formData: FormData): Promise<FormState> {
-  await requireStaff();
+  await requireManager();
   const dayId = parseId(formData.get("dayId"));
   const slot = menuImageSlot(formData.get("slot"));
   const image = await readUploadedImage(formData.get("file"));
@@ -242,7 +243,7 @@ export async function setDayMenuImage(formData: FormData): Promise<FormState> {
 }
 
 export async function clearDayMenuImage(formData: FormData) {
-  await requireStaff();
+  await requireManager();
   const dayId = parseId(formData.get("dayId"));
   const slot = menuImageSlot(formData.get("slot"));
   if (!dayId) return;
@@ -263,7 +264,7 @@ export async function clearDayMenuImage(formData: FormData) {
 // ---------- Đơn của khách ----------
 
 export async function toggleNoteAck(formData: FormData) {
-  const staff = await requireStaff();
+  const staff = await requireKitchen();
   const id = parseId(formData.get("id"));
   if (!id) return;
   const ack = formData.get("ack") === "true";
@@ -275,7 +276,7 @@ export async function toggleNoteAck(formData: FormData) {
 }
 
 export async function togglePrepared(formData: FormData) {
-  const staff = await requireStaff();
+  const staff = await requireKitchen();
   const id = parseId(formData.get("id"));
   if (!id) return;
   const prepared = formData.get("prepared") === "true";

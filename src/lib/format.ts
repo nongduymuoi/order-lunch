@@ -8,6 +8,7 @@ export const ROLE_LABEL = {
   user: "Thành viên",
   admin: "Chủ Quán",
   owner: "App Owner",
+  staff: "Nhân viên",
 } as const;
 
 export const CATEGORY_LABEL = {

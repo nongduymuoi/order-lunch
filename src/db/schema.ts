@@ -12,7 +12,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum("role", ["user", "admin", "owner"]);
+export const roleEnum = pgEnum("role", ["user", "admin", "owner", "staff"]);
 export const categoryEnum = pgEnum("menu_category", ["food", "drink"]);
 export const depositStatusEnum = pgEnum("deposit_status", [
   "pending",

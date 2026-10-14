@@ -4,7 +4,7 @@ import { BalanceValue } from "@/components/badges";
 import { Brand } from "@/components/brand";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { UserAvatar } from "@/components/user-avatar";
-import { isStaff, requireUser } from "@/lib/auth";
+import { canPrepareOrders, isStaff, requireUser } from "@/lib/auth";
 import { getBalance } from "@/lib/data";
 import { ROLE_LABEL } from "@/lib/format";
 
@@ -43,12 +43,14 @@ async function SidebarContent() {
       ],
     },
   ];
-  if (isStaff(user.role)) {
-    const items: NavItem[] = [
-      { href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" },
-      { href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" },
-      { href: "/admin/menu", label: "Thực đơn", icon: "menu" },
-    ];
+  if (canPrepareOrders(user.role)) {
+    const items: NavItem[] = isStaff(user.role)
+      ? [
+          { href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" },
+          { href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" },
+          { href: "/admin/menu", label: "Thực đơn", icon: "menu" },
+        ]
+      : [{ href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" }];
     if (user.role === "owner") {
       items.push({ href: "/admin/deposits", label: "Duyệt nạp tiền", icon: "approve" });
       items.push({ href: "/admin/debts", label: "Quản lý nợ", icon: "debt" });

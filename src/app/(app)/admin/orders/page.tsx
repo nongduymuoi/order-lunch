@@ -22,7 +22,7 @@ export default function AdminOrdersPage() {
 }
 
 async function AdminOrdersContent() {
-  await requireRole("admin", "owner");
+  await requireRole("staff", "admin", "owner");
   const day = await getToday();
 
   if (!day) {
