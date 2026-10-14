@@ -44,13 +44,17 @@ async function SidebarContent() {
     },
   ];
   if (canPrepareOrders(user.role)) {
-    const items: NavItem[] = isStaff(user.role)
-      ? [
-          { href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" },
-          { href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" },
-          { href: "/admin/menu", label: "Thực đơn", icon: "menu" },
-        ]
-      : [{ href: "/admin/orders", label: "Danh sách lấy cơm", icon: "orders" }];
+    const items: NavItem[] = [];
+    if (isStaff(user.role)) {
+      items.push({ href: "/admin/today", label: "Quản lý menu hôm nay", icon: "control" });
+    }
+    items.push(
+      { href: "/admin/orders", label: "Danh sách lấy cơm trưa", icon: "orders" },
+      { href: "/admin/drinks", label: "Danh sách lấy nước", icon: "drinks" },
+    );
+    if (isStaff(user.role)) {
+      items.push({ href: "/admin/menu", label: "Thực đơn", icon: "menu" });
+    }
     if (user.role === "owner") {
       items.push({ href: "/admin/deposits", label: "Duyệt nạp tiền", icon: "approve" });
       items.push({ href: "/admin/debts", label: "Quản lý nợ", icon: "debt" });

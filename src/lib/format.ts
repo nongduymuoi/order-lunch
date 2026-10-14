@@ -11,6 +11,11 @@ export const ROLE_LABEL = {
   staff: "Nhân viên",
 } as const;
 
+export const ORDER_KIND_LABEL = {
+  lunch: "Cơm trưa",
+  drink: "Nước",
+} as const;
+
 export const CATEGORY_LABEL = {
   food: "Món ăn",
   drink: "Đồ uống",

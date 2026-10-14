@@ -6,7 +6,7 @@ import { OrderLines } from "@/components/order-lines";
 import { EmptyState, PageHeader, PageSkeleton } from "@/components/page";
 import { isStaff, requireUser } from "@/lib/auth";
 import { getLedger, getMemberBalances, type MemberBalance } from "@/lib/data";
-import { formatVND } from "@/lib/format";
+import { ORDER_KIND_LABEL, formatVND } from "@/lib/format";
 import { formatDate } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Báo cáo chi tiêu — Mộc" };
@@ -95,7 +95,10 @@ async function ReportContent({ searchParams }: { searchParams: PageProps<"/repor
                   >
                     <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="font-medium text-ink capitalize">{formatDate(o.date)}</span>
+                  <span className="font-medium text-ink capitalize">
+                    {formatDate(o.date)}
+                    <span className="ml-2 text-xs font-medium text-muted">{ORDER_KIND_LABEL[o.kind]}</span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="font-semibold text-navy-900 tabular-nums">{formatVND(o.total)}</span>

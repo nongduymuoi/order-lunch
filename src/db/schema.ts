@@ -14,6 +14,7 @@ import {
 
 export const roleEnum = pgEnum("role", ["user", "admin", "owner", "staff"]);
 export const categoryEnum = pgEnum("menu_category", ["food", "drink"]);
+export const orderKindEnum = pgEnum("order_kind", ["lunch", "drink"]);
 export const depositStatusEnum = pgEnum("deposit_status", [
   "pending",
   "approved",
@@ -81,6 +82,8 @@ export const orders = pgTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id),
+    // lunch: đơn trước giờ chốt. drink: nước đặt sau khi cơm đã chốt.
+    kind: orderKindEnum("kind").notNull().default("lunch"),
     total: integer("total").notNull(),
     note: text("note"),
     noteAckAt: timestamp("note_ack_at", { withTimezone: true }),
@@ -91,7 +94,7 @@ export const orders = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex("orders_day_user_idx").on(t.dayId, t.userId),
+    uniqueIndex("orders_day_user_kind_idx").on(t.dayId, t.userId, t.kind),
     index("orders_user_idx").on(t.userId),
   ],
 );
@@ -136,3 +139,4 @@ export const depositRequests = pgTable(
 
 export type Role = (typeof roleEnum.enumValues)[number];
 export type Category = (typeof categoryEnum.enumValues)[number];
+export type OrderKind = (typeof orderKindEnum.enumValues)[number];

@@ -43,6 +43,13 @@
       "when": 1791994358913,
       "tag": "0005_staff_role",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792006678426,
+      "tag": "0006_order_kind",
+      "breakpoints": true
     }
   ]
 }

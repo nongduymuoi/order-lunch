@@ -9,7 +9,7 @@ import { OrderNote } from "@/components/order-note";
 import { EmptyState, PageSkeleton } from "@/components/page";
 import { canPrepareOrders, isStaff, requireUser } from "@/lib/auth";
 import { getDayMenu, getDayOrders, getLedger, getToday } from "@/lib/data";
-import { FOOD_CLOSED_MESSAGE, formatVND } from "@/lib/format";
+import { FOOD_CLOSED_MESSAGE, ORDER_KIND_LABEL, formatVND } from "@/lib/format";
 import { formatDate, isPast, todayISO, toHHMM } from "@/lib/time";
 import { OrderBuilder, type BuilderItem } from "./order-builder";
 
@@ -55,25 +55,32 @@ async function TodayContent() {
 
   const foodClosed = day.isLocked || isPast(day.deadline);
 
-  const items: BuilderItem[] = menu.map((m) => ({
-    dayItemId: m.dayItemId,
-    name: m.name,
-    category: m.category,
-    price: m.price,
-    salePrice: m.salePrice,
-    description: m.description,
-    isSoldOut: m.isSoldOut,
-    savedQty: m.orderedByMe,
-    // Số phần tối đa người này có thể giữ = tồn kho trừ phần người khác đã đặt.
-    maxForMe: m.stock === null ? null : Math.max(0, m.stock - (m.orderedTotal - m.orderedByMe)),
-  }));
+  const items: BuilderItem[] = menu.map((m) => {
+    const mine = foodClosed ? m.orderedDrink : m.orderedLunch;
+    return {
+      dayItemId: m.dayItemId,
+      name: m.name,
+      category: m.category,
+      price: m.price,
+      salePrice: m.salePrice,
+      description: m.description,
+      isSoldOut: m.isSoldOut,
+      savedQty: mine,
+      // Số phần tối đa của đơn đang sửa = tồn kho trừ phần thuộc đơn khác.
+      maxForMe: m.stock === null ? null : Math.max(0, m.stock - (m.orderedTotal - mine)),
+    };
+  });
 
-  const myOrder = ledger.orders.find((o) => o.dayId === day.id);
+  const myOrders = ledger.orders
+    .filter((o) => o.dayId === day.id)
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "lunch" ? -1 : 1));
+  const activeOrder = foodClosed
+    ? myOrders.find((o) => o.kind === "drink")
+    : myOrders.find((o) => o.kind === "lunch");
   const staff = canPrepareOrders(user.role);
-  const portions = dayOrders.reduce(
-    (s, o) => s + o.lines.reduce((n, l) => n + l.quantity, 0),
-    0,
-  );
+  const portions = dayOrders.reduce((s, o) => s + o.lines.reduce((n, l) => n + l.quantity, 0), 0);
+  const people = new Set(dayOrders.map((o) => o.userId)).size;
+  const myTotal = myOrders.reduce((s, o) => s + o.total, 0);
 
   return (
     <>
@@ -96,12 +103,9 @@ async function TodayContent() {
             )}
           </div>
           <dl className="flex gap-8 sm:gap-12">
-            <Stat label="Người đã đặt" value={String(dayOrders.length)} />
+            <Stat label="Người đã đặt" value={String(people)} />
             <Stat label="Tổng phần" value={String(portions)} />
-            <Stat
-              label="Đơn của bạn"
-              value={myOrder ? formatVND(myOrder.total) : "—"}
-            />
+            <Stat label="Đơn của bạn" value={myOrders.length > 0 ? formatVND(myTotal) : "—"} />
           </dl>
         </div>
       </section>
@@ -114,8 +118,8 @@ async function TodayContent() {
         <OrderBuilder
           items={items}
           foodClosed={foodClosed}
-          savedNote={myOrder?.note ?? ""}
-          noteAcknowledged={Boolean(myOrder?.noteAckAt)}
+          savedNote={activeOrder?.note ?? ""}
+          noteAcknowledged={Boolean(activeOrder?.noteAckAt)}
         />
       )}
 
@@ -144,6 +148,7 @@ async function TodayContent() {
                     <p className="text-sm font-semibold text-ink">
                       {o.userName}
                       {o.userId === user.id && <span className="ml-2 text-xs font-medium text-royal-600">(bạn)</span>}
+                      <span className="ml-2 text-xs font-medium text-muted">{ORDER_KIND_LABEL[o.kind]}</span>
                     </p>
                     <p className="mt-0.5 text-sm text-muted">
                       {o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}
@@ -169,21 +174,26 @@ async function TodayContent() {
         <section className="card p-6 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="font-display text-xl font-semibold text-navy-900">Chi tiết đơn của bạn</h2>
-            {myOrder && (
-              <PaymentBadge status={myOrder.status} owed={myOrder.total - myOrder.paidAmount} />
-            )}
           </div>
-          {myOrder ? (
-            <>
-              {myOrder.preparedAt && (
-                <p className="mb-4 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                  ✓ Quán đã chuẩn bị xong đơn của bạn
-                </p>
-              )}
-              <OrderLines lines={myOrder.lines} total={myOrder.total} />
-            </>
-          ) : (
+          {myOrders.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">Bạn chưa đặt món hôm nay.</p>
+          ) : (
+            <div className="space-y-6">
+              {myOrders.map((order) => (
+                <div key={order.id}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-navy-800">{ORDER_KIND_LABEL[order.kind]}</h3>
+                    <PaymentBadge status={order.status} owed={order.total - order.paidAmount} />
+                  </div>
+                  {order.preparedAt && (
+                    <p className="mb-3 rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                      ✓ Quán đã chuẩn bị xong
+                    </p>
+                  )}
+                  <OrderLines lines={order.lines} total={order.total} />
+                </div>
+              ))}
+            </div>
           )}
         </section>
       </div>

@@ -5,6 +5,7 @@ import { OrderLines } from "@/components/order-lines";
 import { EmptyState, PageHeader, PageSkeleton } from "@/components/page";
 import { requireUser } from "@/lib/auth";
 import { getLedger } from "@/lib/data";
+import { ORDER_KIND_LABEL } from "@/lib/format";
 import { formatDate, formatDateTime } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Lịch sử đơn — Mộc" };
@@ -38,6 +39,7 @@ async function HistoryContent() {
                 <div>
                   <p className="font-display text-lg font-semibold text-navy-900 capitalize">
                     {formatDate(o.date)}
+                    <span className="ml-2 text-sm font-medium text-muted">{ORDER_KIND_LABEL[o.kind]}</span>
                   </p>
                   <p className="text-xs text-muted">Cập nhật lúc {formatDateTime(o.updatedAt)}</p>
                 </div>

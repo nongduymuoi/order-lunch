@@ -9,6 +9,7 @@ import {
   orders,
   users,
   type Category,
+  type OrderKind,
 } from "@/db/schema";
 import { todayISO } from "./time";
 
@@ -28,6 +29,7 @@ export type OrderWithLines = {
   dayId: number;
   date: string;
   userId: number;
+  kind: OrderKind;
   userName: string;
   avatarUrl: string | null;
   total: number;
@@ -58,7 +60,8 @@ export type DayMenuItem = {
   stock: number | null;
   isSoldOut: boolean;
   orderedTotal: number;
-  orderedByMe: number;
+  orderedLunch: number;
+  orderedDrink: number;
 };
 
 export async function getDayMenu(dayId: number, userId: number): Promise<DayMenuItem[]> {
@@ -74,7 +77,8 @@ export async function getDayMenu(dayId: number, userId: number): Promise<DayMenu
       stock: dayItems.stock,
       isSoldOut: dayItems.isSoldOut,
       orderedTotal: sql<number>`coalesce(sum(${orderItems.quantity}), 0)::int`,
-      orderedByMe: sql<number>`coalesce(sum(case when ${orders.userId} = ${userId} then ${orderItems.quantity} end), 0)::int`,
+      orderedLunch: sql<number>`coalesce(sum(case when ${orders.userId} = ${userId} and ${orders.kind} = 'lunch' then ${orderItems.quantity} end), 0)::int`,
+      orderedDrink: sql<number>`coalesce(sum(case when ${orders.userId} = ${userId} and ${orders.kind} = 'drink' then ${orderItems.quantity} end), 0)::int`,
     })
     .from(dayItems)
     .innerJoin(menuItems, eq(menuItems.id, dayItems.menuItemId))
@@ -118,6 +122,7 @@ const orderColumns = {
   dayId: orders.dayId,
   date: days.date,
   userId: orders.userId,
+  kind: orders.kind,
   userName: users.name,
   avatarUrl: users.avatarUrl,
   total: orders.total,
@@ -127,13 +132,13 @@ const orderColumns = {
   updatedAt: orders.updatedAt,
 };
 
-export async function getDayOrders(dayId: number): Promise<OrderWithLines[]> {
+export async function getDayOrders(dayId: number, kind?: OrderKind): Promise<OrderWithLines[]> {
   const rows = await db
     .select(orderColumns)
     .from(orders)
     .innerJoin(days, eq(days.id, orders.dayId))
     .innerJoin(users, eq(users.id, orders.userId))
-    .where(eq(orders.dayId, dayId))
+    .where(kind ? and(eq(orders.dayId, dayId), eq(orders.kind, kind)) : eq(orders.dayId, dayId))
     .orderBy(asc(orders.createdAt));
   return attachLines(rows);
 }
@@ -268,7 +273,7 @@ export async function getDebtMembers(): Promise<{ members: MemberBalance[]; debt
             id: o.id,
             date: o.date,
             owed: o.total - o.paidAmount,
-            summary: o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · "),
+            summary: `${o.kind === "drink" ? "Nước" : "Cơm trưa"}: ${o.lines.map((l) => `${l.quantity}× ${l.name}`).join(" · ")}`,
           }));
         return { ...m, owed: -m.balance, orders };
       }),

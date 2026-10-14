@@ -44,7 +44,7 @@ export function OrderBuilder({
   const [pending, startTransition] = useTransition();
 
   const quantityOf = (i: BuilderItem) =>
-    foodClosed && i.category === "food" ? i.savedQty : (qty[i.dayItemId] ?? 0);
+    foodClosed && i.category === "food" ? 0 : (qty[i.dayItemId] ?? 0);
   const maxOf = (i: BuilderItem) => {
     const stockCap = i.maxForMe ?? HARD_CAP;
     // Món đã hết thì chỉ giữ được tối đa số phần đã đặt trước đó.
@@ -66,17 +66,10 @@ export function OrderBuilder({
     });
   }
 
-  function linesOf(mode: "current" | "drop-drinks") {
+  function currentLines() {
     return items
-      .map((item) => ({
-        dayItemId: item.dayItemId,
-        quantity:
-          mode === "drop-drinks"
-            ? item.category === "food"
-              ? item.savedQty
-              : 0
-            : quantityOf(item),
-      }))
+      .filter((item) => item.category === "drink" || !foodClosed)
+      .map((item) => ({ dayItemId: item.dayItemId, quantity: quantityOf(item) }))
       .filter((line) => line.quantity > 0);
   }
 
@@ -91,8 +84,6 @@ export function OrderBuilder({
   }
 
   const groups: Category[] = foodClosed ? ["drink"] : ["food", "drink"];
-  const savedFood = items.some((item) => item.category === "food" && item.savedQty > 0);
-  const savedDrinks = items.some((item) => item.category === "drink" && item.savedQty > 0);
   const visible = items.filter((i) => matchesQuery(i.name, query));
 
   return (
@@ -173,7 +164,7 @@ export function OrderBuilder({
       <aside className="lg:sticky lg:top-8 lg:self-start">
         <div className="card overflow-hidden">
           <div className="border-b border-line bg-gradient-to-b from-royal-50 to-white px-6 py-5">
-            <p className="eyebrow">Giỏ của bạn</p>
+            <p className="eyebrow">{foodClosed ? "Đơn nước riêng" : "Giỏ của bạn"}</p>
             <p className="mt-1 font-display text-3xl font-semibold text-navy-900 tabular-nums">
               {formatVND(priced.total)}
             </p>
@@ -194,9 +185,6 @@ export function OrderBuilder({
                     <span className="text-ink">
                       <span className="mr-1.5 text-muted tabular-nums">{l.quantity}×</span>
                       {l.name}
-                      {foodClosed && l.category === "food" && (
-                        <span className="ml-1.5 text-xs text-muted">· đã chốt</span>
-                      )}
                     </span>
                     <span className="shrink-0 tabular-nums">
                       {l.discounted && (
@@ -240,7 +228,9 @@ export function OrderBuilder({
               className="input resize-none"
             />
             {hasSaved && noteDirty && (
-              <p className="mt-1 text-xs text-muted">Bấm “Cập nhật đơn” để gửi ghi chú.</p>
+              <p className="mt-1 text-xs text-muted">
+                Bấm “{foodClosed ? "Cập nhật đơn nước" : "Cập nhật đơn"}” để gửi ghi chú.
+              </p>
             )}
           </div>
           <div className="space-y-3 border-t border-line px-6 py-5">
@@ -248,23 +238,21 @@ export function OrderBuilder({
               type="button"
               className="btn-primary w-full py-3"
               disabled={pending || !dirty || selected.length === 0}
-              onClick={() => submit(linesOf("current"))}
+              onClick={() => submit(currentLines())}
             >
-              {pending ? "Đang lưu…" : hasSaved ? "Cập nhật đơn" : "Xác nhận đặt món"}
+              {pending
+                ? "Đang lưu…"
+                : foodClosed
+                  ? hasSaved
+                    ? "Cập nhật đơn nước"
+                    : "Xác nhận đặt nước"
+                  : hasSaved
+                    ? "Cập nhật đơn"
+                    : "Xác nhận đặt món"}
             </button>
-            {foodClosed && savedFood && savedDrinks && (
-              <button
-                type="button"
-                className="btn-ghost w-full"
-                disabled={pending}
-                onClick={() => submit(linesOf("drop-drinks"))}
-              >
-                Bỏ đồ uống
-              </button>
-            )}
-            {(!foodClosed || !savedFood) && hasSaved && (
+            {hasSaved && (
               <button type="button" className="btn-ghost w-full" disabled={pending} onClick={() => submit([])}>
-                Hủy đơn hôm nay
+                {foodClosed ? "Hủy đơn nước" : "Hủy đơn hôm nay"}
               </button>
             )}
             {dirty && hasSaved && !pending && (
