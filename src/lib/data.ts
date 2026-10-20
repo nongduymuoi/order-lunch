@@ -49,6 +49,16 @@ export function getToday(): Promise<Day | null> {
   return getDayByDate(todayISO());
 }
 
+export async function getTodayMenuItemIds(): Promise<number[]> {
+  const day = await getToday();
+  if (!day) return [];
+  const rows = await db
+    .select({ menuItemId: dayItems.menuItemId })
+    .from(dayItems)
+    .where(eq(dayItems.dayId, day.id));
+  return rows.map((row) => row.menuItemId);
+}
+
 export type DayMenuItem = {
   dayItemId: number;
   menuItemId: number;

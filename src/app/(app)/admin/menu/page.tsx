@@ -7,10 +7,11 @@ import { SearchItem, SearchScope } from "@/components/search";
 import { SubmitButton } from "@/components/submit-button";
 import type { Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { getMenuItems } from "@/lib/data";
+import { getMenuItems, getTodayMenuItemIds } from "@/lib/data";
 import { CATEGORY_LABEL } from "@/lib/format";
 import { CreateItemForm } from "./create-item-form";
 import { MenuItemEditor } from "./menu-item-editor";
+import { TodayMenuSwitch } from "./today-switch";
 
 export const metadata: Metadata = { title: "Thực đơn — Mộc" };
 
@@ -24,7 +25,8 @@ export default function AdminMenuPage() {
 
 async function AdminMenuContent() {
   await requireRole("admin", "owner");
-  const items = await getMenuItems();
+  const [items, todayIds] = await Promise.all([getMenuItems(), getTodayMenuItemIds()]);
+  const onToday = new Set(todayIds);
   const groups: Category[] = ["food", "drink"];
 
   return (
@@ -32,7 +34,7 @@ async function AdminMenuContent() {
       <PageHeader
         eyebrow="Quản lý"
         title="Thực đơn của quán"
-        description="Món ẩn sẽ không được đưa vào menu khi mở đơn ngày mới. Giá gốc và giá sau giảm chỉ áp dụng cho các lượt đặt sau đó."
+        description="Bật công tắc để đưa món vào menu hôm nay, tắt là gỡ ngay. Món ẩn sẽ không được đưa vào khi mở đơn ngày mới. Giá chỉ áp dụng cho các lượt đặt sau đó."
       />
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="card h-fit p-6 lg:sticky lg:top-8">
@@ -67,7 +69,8 @@ async function AdminMenuContent() {
                         className={`px-6 py-4 ${item.isActive ? "" : "bg-mist/70"}`}
                       >
                         <MenuItemEditor item={item} />
-                        <div className="mt-3 flex items-center gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <TodayMenuSwitch menuItemId={item.id} on={onToday.has(item.id)} />
                           {item.isActive ? <Badge tone="green">Đang bán</Badge> : <Badge tone="gray">Đang ẩn</Badge>}
                           <form action={toggleMenuItem}>
                             <input type="hidden" name="id" value={item.id} />

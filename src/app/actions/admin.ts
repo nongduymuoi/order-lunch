@@ -7,7 +7,7 @@ import { dayItems, days, menuItems, orderItems, orders, type Category } from "@/
 import { requireRole } from "@/lib/auth";
 import type { FormState } from "@/lib/form-state";
 import { readUploadedImage, removeStoredImage, storeImage } from "@/lib/storage";
-import { deadlineAt, isValidHHMM, todayISO } from "@/lib/time";
+import { deadlineAt, DEFAULT_DEADLINE, isValidHHMM, todayISO } from "@/lib/time";
 
 const requireManager = () => requireRole("admin", "owner");
 const requireKitchen = () => requireRole("staff", "admin", "owner");
@@ -191,6 +191,64 @@ export async function addDayItem(formData: FormData) {
   if (!dayId || !menuItemId) return;
   await db.insert(dayItems).values({ dayId, menuItemId }).onConflictDoNothing();
   refresh();
+}
+
+async function ensureToday(): Promise<number> {
+  const date = todayISO();
+  const [created] = await db
+    .insert(days)
+    .values({ date, deadline: deadlineAt(date, DEFAULT_DEADLINE) })
+    .onConflictDoNothing({ target: days.date })
+    .returning({ id: days.id });
+  if (created) return created.id;
+  const [existing] = await db.select({ id: days.id }).from(days).where(eq(days.date, date));
+  return existing.id;
+}
+
+export async function setTodayMenuItem(
+  menuItemId: number,
+  on: boolean,
+): Promise<{ on: boolean; notice?: string }> {
+  await requireManager();
+  if (!Number.isInteger(menuItemId) || menuItemId <= 0) return { on: false };
+  const [item] = await db.select({ id: menuItems.id }).from(menuItems).where(eq(menuItems.id, menuItemId));
+  if (!item) return { on: false };
+
+  if (on) {
+    const dayId = await ensureToday();
+    await db.insert(dayItems).values({ dayId, menuItemId }).onConflictDoNothing();
+    refresh();
+    return { on: true };
+  }
+
+  const date = todayISO();
+  const [row] = await db
+    .select({ id: dayItems.id })
+    .from(dayItems)
+    .innerJoin(days, eq(days.id, dayItems.dayId))
+    .where(and(eq(days.date, date), eq(dayItems.menuItemId, menuItemId)));
+  if (!row) {
+    refresh();
+    return { on: false };
+  }
+
+  const [used] = await db
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .where(eq(orderItems.dayItemId, row.id))
+    .limit(1);
+  if (used) {
+    await db.update(dayItems).set({ isSoldOut: true }).where(eq(dayItems.id, row.id));
+    refresh();
+    return {
+      on: true,
+      notice: "Đã có người đặt nên không gỡ được. Món đã được đánh dấu hết.",
+    };
+  }
+
+  await db.delete(dayItems).where(eq(dayItems.id, row.id));
+  refresh();
+  return { on: false };
 }
 
 export async function removeDayItem(formData: FormData) {

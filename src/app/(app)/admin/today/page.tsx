@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import {
-  addDayItem,
   openToday,
   removeDayItem,
   setDayLocked,
@@ -17,7 +16,7 @@ import { MenuImageEditor } from "./menu-image-editor";
 import { SubmitButton } from "@/components/submit-button";
 import type { Category } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { getDayMenu, getDayOrders, getMenuItems, getToday, type DayMenuItem } from "@/lib/data";
+import { getDayMenu, getDayOrders, getToday, type DayMenuItem } from "@/lib/data";
 import { CATEGORY_LABEL, formatVND } from "@/lib/format";
 import { DEFAULT_DEADLINE, formatDate, isPast, todayISO, toHHMM } from "@/lib/time";
 
@@ -45,8 +44,8 @@ async function AdminTodayContent() {
         <section className="card mx-auto max-w-lg p-8 text-center">
           <p className="font-display text-2xl font-semibold text-navy-900">Mở menu hôm nay</p>
           <p className="mt-2 text-sm text-muted">
-            Tất cả món đang bán trong Thực đơn sẽ được đưa vào menu. Bạn có thể chỉnh số lượng và
-            đánh dấu hết sau.
+            Tất cả món đang bán trong Thực đơn sẽ được đưa vào menu. Sau đó bật hoặc tắt từng món
+            bằng công tắc ngay trong Thực đơn.
           </p>
           <form action={openToday} className="mt-6 flex items-end justify-center gap-3">
             <div className="text-left">
@@ -69,13 +68,7 @@ async function AdminTodayContent() {
     );
   }
 
-  const [menu, dayOrders, catalog] = await Promise.all([
-    getDayMenu(day.id, user.id),
-    getDayOrders(day.id),
-    getMenuItems(),
-  ]);
-  const inMenu = new Set(menu.map((m) => m.menuItemId));
-  const addable = catalog.filter((c) => c.isActive && !inMenu.has(c.id));
+  const [menu, dayOrders] = await Promise.all([getDayMenu(day.id, user.id), getDayOrders(day.id)]);
   const revenue = dayOrders.reduce((s, o) => s + o.total, 0);
   const portions = menu.reduce((s, m) => s + m.orderedTotal, 0);
   const expired = isPast(day.deadline);
@@ -134,36 +127,10 @@ async function AdminTodayContent() {
           <div>
             <h2 className="font-display text-xl font-semibold text-navy-900">Món trong menu hôm nay</h2>
             <p className="mt-1 text-xs text-muted">
-              Để trống số lượng = không giới hạn. Đánh dấu hết bất cứ lúc nào khi có khách đặt ngoài.
+              Thêm hoặc gỡ món bằng công tắc trong Thực đơn. Để trống số lượng = không giới hạn.
+              Đánh dấu hết bất cứ lúc nào khi có khách đặt ngoài.
             </p>
           </div>
-          {addable.length > 0 && (
-            <form action={addDayItem} className="flex items-center gap-2">
-              <input type="hidden" name="dayId" value={day.id} />
-              <select name="menuItemId" className="input w-60 py-2" required defaultValue="">
-                <option value="" disabled>
-                  Thêm món vào hôm nay…
-                </option>
-                {CATEGORIES.map((cat) => {
-                  const options = addable.filter((c) => c.category === cat);
-                  if (options.length === 0) return null;
-                  return (
-                    <optgroup key={cat} label={CATEGORY_LABEL[cat]}>
-                      {options.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ·{" "}
-                          {c.salePrice !== null && c.salePrice < c.price
-                            ? `${formatVND(c.salePrice)} (gốc ${formatVND(c.price)})`
-                            : formatVND(c.price)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  );
-                })}
-              </select>
-              <SubmitButton className="btn-ghost">Thêm</SubmitButton>
-            </form>
-          )}
         </div>
 
         <div className="mb-6 grid gap-4 lg:grid-cols-2">
